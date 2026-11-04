@@ -29,7 +29,7 @@ Connect a platform before browsing it. You can only see what that account is all
 - **Comments.** `k` on a post opens its comments, with likes and reply counts. `m` loads more.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.
 - **Closest matches.** TikTok and Snapchat get their own list: the exact handle if it exists, then up to 10 of the closest real accounts.
-- **Account screen.** Bio, exact follower and post counts, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
+- **Account screen.** Bio, exact follower counts, post counts where the platform shares them, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
 - **Saved accounts.** Press `+` on an account to save it (and `-` to unsave). Saved accounts show on the home screen with their new-post counts, and the right side shows the newest posts from whichever one is highlighted.
 - **Feed.** Every saved account in one stream, newest first. New posts sit on top, then a "you're caught up" line.
 - **Preview pane** with a cyan thumbnail, the date, views, likes, comments, and the full caption.
