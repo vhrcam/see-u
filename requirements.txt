@@ -1,0 +1,7 @@
+textual>=8.2
+yt-dlp>=2026.10.26
+instaloader>=4.16
+pillow>=13.0
+requests
+tzdata
+websocket-client

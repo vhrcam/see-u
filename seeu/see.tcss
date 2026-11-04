@@ -1,0 +1,178 @@
+Screen {
+    background: #000000;
+    color: #67e8f9;
+}
+
+#banner {
+    height: 10;
+    padding: 1 2 0 2;
+}
+
+#eye {
+    width: 40;
+}
+
+#title {
+    width: 1fr;
+    padding-left: 2;
+}
+
+#homebody {
+    height: 1fr;
+    margin: 1 2 0 2;
+}
+
+#left {
+    width: 1fr;
+}
+
+#right {
+    width: 1fr;
+    padding-left: 2;
+    border-left: vkey #083344;
+}
+
+.paneltitle {
+    height: 1;
+    margin-bottom: 1;
+}
+
+#newest {
+    height: 1fr;
+    overflow: hidden;
+}
+
+#hint {
+    height: 1fr;
+}
+
+#accounts {
+    height: 1fr;
+}
+
+#searchbar {
+    height: 1;
+    margin: 1 2;
+}
+
+#where {
+    width: auto;
+    padding-right: 1;
+}
+
+FilterBar {
+    height: 1;
+    margin: 1 2 0 2;
+}
+
+FilterBar .slash {
+    width: auto;
+}
+
+Input {
+    border: none;
+    height: 1;
+    padding: 0;
+    background: #000000;
+    color: #ecfeff;
+}
+
+Input:focus {
+    border: none;
+    background: #000000;
+    background-tint: #000000 0%;
+}
+
+Input > .input--placeholder {
+    color: #155e75;
+}
+
+OptionList {
+    border: none;
+    background: #000000;
+    padding: 0;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+
+OptionList:focus {
+    border: none;
+    background-tint: #000000 0%;
+}
+
+OptionList > .option-list--option-highlighted {
+    color: #cffafe;
+}
+
+#feedhead, #savedhead {
+    height: auto;
+    margin: 1 2 0 2;
+}
+
+FolderPick {
+    align: center middle;
+    background: #000000 70%;
+}
+
+#folderbox {
+    width: 64;
+    height: auto;
+    padding: 1 2;
+    background: #000000;
+    border: round #0e7490;
+}
+
+#folderbox Input {
+    margin: 1 0;
+}
+
+#folders {
+    height: auto;
+    max-height: 8;
+    margin-bottom: 1;
+}
+
+#searching {
+    height: auto;
+    margin: 1 2 0 2;
+}
+
+#matches {
+    height: 1fr;
+    margin: 1 2 0 2;
+}
+
+#profile {
+    height: auto;
+    max-height: 10;
+    margin: 1 2 0 2;
+}
+
+#body {
+    height: 1fr;
+    margin: 1 2 0 2;
+}
+
+#posts {
+    width: 3fr;
+}
+
+#preview {
+    width: 2fr;
+    padding: 0 1 0 2;
+    border-left: vkey #083344;
+}
+
+#thumb {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#info {
+    height: auto;
+}
+
+Toast {
+    background: #06222a;
+    color: #a5f3fc;
+}
