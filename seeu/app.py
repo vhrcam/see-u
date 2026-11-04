@@ -112,7 +112,7 @@ def account_line(a, new=0):
 
 
 class Home(Screen):
-    AUTO_FOCUS = None
+    AUTO_FOCUS = ""
 
     BINDINGS = [
         Binding("colon", "search", "search", show=False),
