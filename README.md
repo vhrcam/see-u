@@ -11,6 +11,8 @@ Press `l` for the logins menu. Pick a platform and a browser window opens on tha
 - You can connect several accounts on a platform and pick which one is in use.
 - `x` signs out and deletes that account's saved session. `-` also takes it off the list.
 
+Type `/removeme` in the home screen's search box, or run `seeu /removeme` from the terminal, to wipe your logins, sessions, saved accounts, and cached posts right away with no confirmation. Posts you saved to folders stay in `~/.seeu/saved`. Your TikTok, Instagram, and Snapchat accounts themselves aren't touched, and a session see u had open ends when the platform expires it, or sooner if you log out of all devices in that platform's settings.
+
 see u never sees your password. It keeps the signed-in session in `~/.seeu/sessions`, readable only by your user. Sign-in opens in your default browser when it's Chrome, Brave, Edge, Chromium, or Vivaldi, as a separate window that doesn't touch your normal profile. If your default is something else, like Safari or Firefox, see u uses one of those instead, so you need at least one installed.
 
 Connect a platform before browsing it. You can only see what that account is allowed to see, and see u has no way to like, follow, comment, or message.
@@ -65,7 +67,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 | Where | Keys |
 |---|---|
-| Home | `:` search, `tab` platform, `l` logins, `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
+| Home | `:` search, `/removeme` wipe your accounts, `tab` platform, `l` logins, `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out; `-` forget |
 | Posts | `/` filter, `v` save, `o` open link, `c` copy link |
 | Account | `+` save account, `-` unsave, `m` load every older post (again to pause), `r` refresh |

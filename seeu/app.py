@@ -1,3 +1,4 @@
+import atexit
 import random
 
 from rich.cells import set_cell_size
@@ -115,6 +116,7 @@ class Home(Screen):
 
     BINDINGS = [
         Binding("colon", "search", "search", show=False),
+        Binding("slash", "command", "command", show=False),
         Binding("tab", "platform", "platform", priority=True),
         Binding("f", "feed", "feed"),
         Binding("v", "saved", "saved posts"),
@@ -291,6 +293,17 @@ class Home(Screen):
     def action_search(self):
         self.query_one("#search", Input).focus()
 
+    def action_command(self):
+        search = self.query_one("#search", Input)
+        search.value = "/"
+        search.cursor_position = 1
+        search.focus()
+
+    def remove_me(self):
+        store.wipe()
+        atexit.register(store.wipe)
+        self.app.exit(message="your accounts are gone from see u on this computer. saved posts were kept in ~/.seeu/saved")
+
     def action_leave_search(self):
         self.query_one("#search", Input).value = ""
         self.stop_typing()
@@ -308,6 +321,13 @@ class Home(Screen):
             self.stop_typing()
 
     def on_input_submitted(self, event):
+        text = event.value.strip().lower()
+        if text == "/removeme":
+            self.remove_me()
+            return
+        if text.startswith("/"):
+            self.notify(f"no command called {text}", severity="warning")
+            return
         platform, handle = fetch.parse(event.value)
         if not handle:
             self.notify("type a handle, or paste a profile link", severity="warning")

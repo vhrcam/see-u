@@ -7,6 +7,7 @@ from pathlib import Path
 
 HOME = Path(os.environ.get("SEEU_HOME") or Path.home() / ".seeu")
 _lock = threading.RLock()
+wiped = False
 
 
 def path(*parts):
@@ -23,6 +24,8 @@ def load(name, default=None):
 
 
 def save(name, data):
+    if wiped:
+        return
     p = path(name)
     tmp = p.with_name(f"{p.name}.{threading.get_ident()}.tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False))
@@ -73,6 +76,19 @@ def unseen(platform, handle, posts):
         return set()
     s = seen(platform, handle)
     return {p["id"] for p in posts if p["id"] not in s}
+
+
+def wipe():
+    global wiped
+    wiped = True
+    with _lock:
+        for f in HOME.glob("*"):
+            if f.name == "saved":
+                continue
+            if f.is_dir():
+                shutil.rmtree(f, ignore_errors=True)
+            else:
+                f.unlink(missing_ok=True)
 
 
 def clear_platform(platform):
