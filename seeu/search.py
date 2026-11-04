@@ -116,6 +116,8 @@ def match_line(handle, name=None, prof=None, added=False):
             t.append(" ✓", style=ACCENT)
         t.append(f"   @{handle}", style=ACCENT)
         stats = [f"{human(prof[k])} {k}" for k in ("followers", "posts") if prof.get(k) is not None]
+        if prof.get("context"):
+            stats.append(prof["context"])
         if stats:
             t.append("   " + " · ".join(stats), style=DIM)
     else:
@@ -160,13 +162,31 @@ class Results(Screen):
         for p in platforms:
             self.run_worker(lambda p=p, t=self.token: self.search(p, t), thread=True, group=f"search-{p}", exclusive=True)
 
+    def real_results(self, platform):
+        if platform != "instagram":
+            return None
+        key = ("real", platform, self.q)
+        if key in _probed and time.time() - _probed[key][0] < fetch.TTL:
+            return _probed[key][1]
+        try:
+            users = fetch.instagram_search(self.q)
+        except Exception:
+            return None
+        _probed[key] = (time.time(), users)
+        return users
+
     def search(self, platform, token):
         if not sessions.current(platform):
             self.app.call_from_thread(self.update, platform, token, exact=False, off=True, checking=False,
                                       note=f"connect {platform} first: esc, then l on the home screen")
             return
+        real = self.real_results(platform)
+        if real is not None:
+            self.app.call_from_thread(self.update, platform, token, real=True,
+                                      found=[(u["handle"], u["name"], u) for u in real])
+        top = next((u for u in real or [] if u["handle"] == self.q), None)
         try:
-            prof, note = fetch.account(platform, self.q)["profile"], None
+            prof, note = top or fetch.account(platform, self.q)["profile"], None
         except fetch.NotFound:
             prof, note = False, f"no account called @{self.q}"
         except fetch.Unavailable as e:
@@ -174,6 +194,9 @@ class Results(Screen):
         except Exception:
             prof, note = False, "couldn't check that handle right now"
         self.app.call_from_thread(self.update, platform, token, exact=prof, note=note)
+        if real is not None:
+            self.app.call_from_thread(self.update, platform, token, checking=False)
+            return
         key = (platform, self.q)
         if key in _probed and time.time() - _probed[key][0] < fetch.TTL:
             self.app.call_from_thread(self.update, platform, token, found=_probed[key][1], checking=False)
@@ -244,14 +267,19 @@ class Results(Screen):
             if st.get("off"):
                 options.append(Option(Text(""), disabled=True))
                 continue
-            pool = {h: (n, profile(platform, h)) for h, n in closest(platform, self.q, limit=20, skip={exact})}
-            for h, n, p in st["found"]:
-                if h != exact:
-                    pool[h] = (n, p)
-            near = sorted(((h, n, p) for h, (n, p) in pool.items()),
-                          key=lambda x: -rank(platform, score(self.q, x[0], x[1]), x[0], x[2]))[:10]
+            if st.get("real"):
+                near = [x for x in st["found"] if x[0] != exact][:10]
+                title = "  more results" if prof else "  results"
+            else:
+                pool = {h: (n, profile(platform, h)) for h, n in closest(platform, self.q, limit=20, skip={exact})}
+                for h, n, p in st["found"]:
+                    if h != exact:
+                        pool[h] = (n, p)
+                near = sorted(((h, n, p) for h, (n, p) in pool.items()),
+                              key=lambda x: -rank(platform, score(self.q, x[0], x[1]), x[0], x[2]))[:10]
+                title = "  not it? closest" if prof else "  closest"
             if near:
-                options.append(Option(Text("  not it? closest" if prof else "  closest", style=DIM), disabled=True))
+                options.append(Option(Text(title, style=DIM), disabled=True))
                 for h, n, p in near:
                     options.append(self.target(platform, h, match_line(h, n, prof=p, added=store.is_added(platform, h))))
             if st["checking"]:

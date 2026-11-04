@@ -20,6 +20,7 @@ PACIFIC = ZoneInfo("America/Los_Angeles")
 POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
+IG_SEARCH_DOC = "27706427925724183"
 IG_PAUSE = 3
 STORY_KINDS = ("story", "highlight")
 LINKS = [
@@ -310,6 +311,20 @@ def _ig_private_posts(page_id, handle):
                 break
     page = (getattr(it, "_data", None) or {}).get("page_info") or {}
     return nodes, page.get("end_cursor") if page.get("has_next_page") else None
+
+
+def instagram_search(query):
+    need("instagram")
+    variables = {"data": {"context": "blended", "include_reel": "true", "query": query, "rank_token": "",
+                          "search_session_id": "", "search_surface": "web_top_search"}, "hasQuery": True}
+    with _locks["instagram"]:
+        r = _ig_errors(lambda: _loader.context.doc_id_graphql_query(IG_SEARCH_DOC, variables, web_api=True))
+    conn = (r.get("data") or {}).get("xdt_api__v1__fbsearch__topsearch_connection")
+    if conn is None:
+        raise Unavailable("instagram search isn't answering right now")
+    users = [u["user"] for u in conn.get("users") or [] if (u.get("user") or {}).get("username")]
+    return [{"handle": u["username"].lower(), "name": u.get("full_name") or u["username"],
+             "verified": bool(u.get("is_verified")), "context": u.get("search_social_context")} for u in users]
 
 
 def _ig_thumb(item):
