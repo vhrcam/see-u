@@ -11,7 +11,7 @@ Press `l` for the logins menu. Pick a platform and a browser window opens on tha
 - You can connect several accounts on a platform and pick which one is in use.
 - `x` signs out and deletes that account's saved session. `-` also takes it off the list.
 
-see u never sees your password. It keeps the signed-in session in `~/.seeu/sessions`, readable only by your user. Signing in needs Chrome, Brave, Edge, or Chromium installed.
+see u never sees your password. It keeps the signed-in session in `~/.seeu/sessions`, readable only by your user. Sign-in opens in your default browser when it's Chrome, Brave, Edge, Chromium, or Vivaldi, as a separate window that doesn't touch your normal profile. If your default is something else, like Safari or Firefox, see u uses one of those instead, so you need at least one installed.
 
 Connect a platform before browsing it. You can only see what that account is allowed to see, and see u has no way to like, follow, comment, or message.
 

@@ -1,5 +1,6 @@
 import json
 import os
+import plistlib
 import re
 import shutil
 import subprocess
@@ -18,6 +19,13 @@ LOGIN = {
     "snapchat": {"url": "https://accounts.snapchat.com/accounts/v2/login?continue=https://www.snapchat.com/web",
                  "domain": "snapchat.com", "cookie": "__Host-sc-a-auth-session"},
 }
+MAC_APPS = {"com.google.chrome": "Google Chrome", "com.brave.browser": "Brave Browser",
+            "com.microsoft.edgemac": "Microsoft Edge", "org.chromium.chromium": "Chromium",
+            "com.vivaldi.vivaldi": "Vivaldi"}
+WINDOWS_APPS = {"ChromeHTML": r"Google\Chrome\Application\chrome.exe",
+                "BraveHTML": r"BraveSoftware\Brave-Browser\Application\brave.exe",
+                "MSEdgeHTM": r"Microsoft\Edge\Application\msedge.exe"}
+LINUX_APPS = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge"]
 IG_APP = "936619743392459"
 WAIT = 900
 
@@ -38,25 +46,60 @@ class Unsure(Exception):
     pass
 
 
+def _mac_default():
+    plist = Path.home() / "Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+    try:
+        with open(plist, "rb") as f:
+            handlers = plistlib.load(f).get("LSHandlers", [])
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        return None
+    for scheme in ("https", "http"):
+        for h in handlers:
+            if h.get("LSHandlerURLScheme") == scheme and h.get("LSHandlerRoleAll"):
+                return h["LSHandlerRoleAll"].lower()
+    return None
+
+
+def _windows_default():
+    try:
+        import winreg
+
+        path = r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path) as key:
+            return winreg.QueryValueEx(key, "ProgId")[0]
+    except OSError:
+        return None
+
+
+def _linux_default():
+    try:
+        out = subprocess.run(["xdg-settings", "get", "default-web-browser"], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip().removesuffix(".desktop")
+
+
+def _first(default, order):
+    return ([default] if default in order else []) + list(order)
+
+
 def browser():
     if sys.platform == "darwin":
-        apps = ["Google Chrome", "Brave Browser", "Microsoft Edge", "Chromium", "Vivaldi"]
-        for root in (Path("/Applications"), Path.home() / "Applications"):
-            for app in apps:
+        for bundle in _first(_mac_default(), MAC_APPS):
+            app = MAC_APPS[bundle]
+            for root in (Path("/Applications"), Path.home() / "Applications"):
                 exe = root / f"{app}.app" / "Contents" / "MacOS" / app
                 if exe.exists():
                     return str(exe)
         return None
     if sys.platform == "win32":
-        tails = [r"Google\Chrome\Application\chrome.exe", r"BraveSoftware\Brave-Browser\Application\brave.exe",
-                 r"Microsoft\Edge\Application\msedge.exe"]
-        for base in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
-            for tail in tails:
-                exe = Path(os.environ.get(base, "")) / tail
+        for prog in _first(_windows_default(), WINDOWS_APPS):
+            for base in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
+                exe = Path(os.environ.get(base, "")) / WINDOWS_APPS[prog]
                 if exe.exists():
                     return str(exe)
         return None
-    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge"):
+    for name in _first(_linux_default(), LINUX_APPS):
         if shutil.which(name):
             return shutil.which(name)
     return None
