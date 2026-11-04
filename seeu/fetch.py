@@ -629,7 +629,7 @@ def details(post):
 
 
 def _tiktok_details(post):
-    name = f"cache/details/tt_{post['id']}.json"
+    name = f"cache/details/tiktok_{post['id']}.json"
     c = store.load(name)
     if c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
