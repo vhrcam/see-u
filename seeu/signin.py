@@ -30,6 +30,8 @@ WINDOWS_APPS = {"ChromeHTML": r"Google\Chrome\Application\chrome.exe",
                 "MSEdgeHTM": r"Microsoft\Edge\Application\msedge.exe"}
 LINUX_APPS = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge"]
 IG_VIEWER = '"PolarisViewer",[],'
+SNAP_PAGE = {"Origin": "https://accounts.snapchat.com", "Referer": "https://accounts.snapchat.com/v2/welcome"}
+SNAP_NAME = ("https://accounts.snapchat.com/v2/welcome", '[class*="UserProfileCard_username"]')
 WAIT = 900
 RECHECK_EVERY = 300
 _checked = {}
@@ -154,9 +156,12 @@ class Browser:
             time.sleep(0.2)
         raise Failed()
 
-    def call(self, method, **params):
+    def call(self, method, session=None, **params):
         self.n += 1
-        self.ws.send(json.dumps({"id": self.n, "method": method, "params": params}))
+        msg = {"id": self.n, "method": method, "params": params}
+        if session:
+            msg["sessionId"] = session
+        self.ws.send(json.dumps(msg))
         while True:
             msg = json.loads(self.ws.recv())
             if msg.get("id") == self.n:
@@ -166,6 +171,19 @@ class Browser:
         items = self.call("Storage.getCookies").get("cookies") or []
         return [{k: c.get(k) for k in ("name", "value", "domain", "path", "expires", "secure")}
                 for c in items if c["domain"].lstrip(".").endswith(domain)]
+
+    def read_text(self, url, selector, wait=12):
+        target = self.call("Target.createTarget", url=url)["targetId"]
+        session = self.call("Target.attachToTarget", targetId=target, flatten=True)["sessionId"]
+        script = f"(document.querySelector({json.dumps(selector)}) || {{}}).textContent || ''"
+        end = time.time() + wait
+        while time.time() < end:
+            got = self.call("Runtime.evaluate", session=session, expression=script, returnByValue=True)
+            text = (got.get("result") or {}).get("value", "").strip()
+            if text:
+                return text
+            time.sleep(0.5)
+        return None
 
     def agent(self):
         return self.call("Browser.getVersion").get("userAgent", "").replace("HeadlessChrome", "Chrome")
@@ -209,9 +227,12 @@ def _login_time(profile, info):
 
 def _read_session(platform, profile, check, fresh=False):
     b = Browser(profile, "about:blank", headless=True)
+    shown = None
     try:
         b.attach()
         cookies, agent = b.cookies(LOGIN[platform]["domain"]), b.agent()
+        if platform == "snapchat":
+            shown = b.read_text(*SNAP_NAME)
     finally:
         b.close()
     who = None
@@ -222,6 +243,8 @@ def _read_session(platform, profile, check, fresh=False):
         except (requests.RequestException, ValueError, Unsure):
             time.sleep(3)
     if who:
+        if who["user"] == sessions.UNKNOWN and shown:
+            who = {**who, "user": shown}
         return who, cookies, agent
     return ({"user": sessions.UNKNOWN, "name": None}, cookies, agent) if fresh else None
 
@@ -251,6 +274,19 @@ def sign_in(platform, profile, cancelled, check=None, url=None):
     return _read_session(platform, profile, check, fresh=True)
 
 
+def read_name(platform, profile):
+    if platform != "snapchat" or not Path(profile).exists():
+        return None
+    b = Browser(profile, "about:blank", headless=True)
+    try:
+        b.attach()
+        return b.read_text(*SNAP_NAME)
+    except Exception:
+        return None
+    finally:
+        b.close()
+
+
 def recheck():
     changed = False
     for l in sessions.logins():
@@ -266,10 +302,14 @@ def recheck():
         if who is None:
             sessions.expire(l)
             changed = True
-        elif who["user"].lower() != l["user"] and l["user"] == sessions.UNKNOWN:
-            sessions.rename(l, who["user"], who.get("name"))
-            _checked[(l["platform"], who["user"].lower())] = time.time()
-            changed = True
+        elif l["user"] == sessions.UNKNOWN:
+            name = who["user"]
+            if name == sessions.UNKNOWN:
+                name = read_name(l["platform"], sessions.browser_profile(l["platform"], l["user"]))
+            if name and name.lower() != l["user"]:
+                sessions.rename(l, name, who.get("name"))
+                _checked[(l["platform"], name.lower())] = time.time()
+                changed = True
     return changed
 
 
@@ -322,10 +362,10 @@ def _tiktok_me(cookies, agent):
 
 
 def _snapchat_me(cookies, agent):
-    r = http(cookies, agent).get("https://accounts.snapchat.com/accounts/v2/welcome", timeout=20)
-    if "/login" in r.url:
+    r = http(cookies, agent).post("https://accounts.snapchat.com/accounts/sso", params={"client_id": "snapchat-com-metrics"},
+                                  timeout=20, allow_redirects=False, headers=SNAP_PAGE)
+    if r.is_redirect and "/login" in r.headers.get("location", ""):
         return None
-    m = re.search(r'"(?:username|userName)"\s*:\s*"([A-Za-z0-9_.-]+)"', r.text)
-    if not m:
+    if r.status_code != 200:
         raise Unsure()
-    return {"user": m.group(1), "name": None}
+    return {"user": sessions.UNKNOWN, "name": None}

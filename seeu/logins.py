@@ -228,6 +228,8 @@ class Logins(Screen):
                     signin.TimedOut: "sign-in timed out, try again when you're ready"}.get(type(e), "couldn't finish signing in, try again")
             self.app.call_from_thread(self.finished, None, note)
         else:
+            if who["user"] == sessions.UNKNOWN and user:
+                who = {**who, "user": user}
             final = sessions.browser_profile(platform, who["user"])
             if final != profile:
                 shutil.rmtree(final, ignore_errors=True)
