@@ -57,6 +57,9 @@ class Logins(Screen):
         if signin.recheck():
             self.app.call_from_thread(self.fill)
 
+    def on_unmount(self):
+        self.stop = True
+
     def beat(self):
         if self.busy:
             self.pulse = not self.pulse
