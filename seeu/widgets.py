@@ -3,6 +3,7 @@ import re
 import time
 from datetime import datetime
 
+from rich.style import Style
 from rich.text import Text
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
@@ -18,6 +19,17 @@ SOFT = "#155e75"
 KIND = {"video": "video", "reel": "reel", "photo": "photo", "carousel": "album", "story": "story",
         "highlight": "highlight", "spotlight": "spotlight", "photos": "photos"}
 TAG = {"tiktok": "tt", "instagram": "ig", "snapchat": "sc"}
+
+
+def web_url(url):
+    url = (url or "").strip()
+    if re.match(r"https?://", url, re.I):
+        return url
+    return None if not url or "://" in url else f"https://{url}"
+
+
+def link(url, color):
+    return Style(color=color, underline=True, meta={"@click": f"app.open_link({url!r})"})
 
 
 def human(n):
@@ -218,7 +230,7 @@ def post_text(p, extra=None):
     t.append("\n")
     t.append((p["text"] or "(no caption)").strip() + "\n", style=WHITE)
     t.append("\n")
-    t.append(p["url"].replace("https://www.", ""), style=SOFT)
+    t.append(p["url"].replace("https://www.", ""), style=link(p["url"], DIM))
     return t
 
 

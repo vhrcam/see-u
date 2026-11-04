@@ -14,6 +14,7 @@ class Browser(Screen):
         Binding("escape", "back", "back"),
         Binding("slash", "filter", "filter", key_display="/"),
         Binding("v", "save", "save post"),
+        Binding("o", "open_link", "open link"),
         Binding("c", "copy", "copy link"),
     ]
 
@@ -27,7 +28,7 @@ class Browser(Screen):
 
     def check_action(self, action, parameters):
         posts = self.query_one(Posts)
-        if action in ("copy", "save", "open", "delete"):
+        if action in ("copy", "open_link", "save", "open", "delete"):
             return posts.current() is not None
         if action == "filter":
             return posts.option_count > 0 or bool(self.words)
@@ -144,6 +145,11 @@ class Browser(Screen):
             self.app.call_from_thread(self.notify, f"saved to {folder}. it works offline now")
         except Exception:
             self.app.call_from_thread(self.notify, "couldn't save that one right now", severity="error")
+
+    def action_open_link(self):
+        p = self.query_one(Posts).current()
+        if p:
+            self.app.action_open_link(p["url"])
 
     def action_copy(self):
         p = self.query_one(Posts).current()

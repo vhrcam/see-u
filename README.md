@@ -26,6 +26,7 @@ Connect a platform before browsing it. You can only see what that account is all
 - **Open the real thing.** Enter opens the photo, album, video, or story in an mpv window: full color, with sound. Nothing moves on by itself. In a story, highlight, or album, `a`/`d` (or a click) go to the previous or next item. In a single video, `a`/`d` skip 3 seconds. Space pauses, and `q` or esc closes. Without mpv, see u falls back to your computer's normal photo and video apps.
 - **Filter** with `/` by caption, handle, or post type.
 - **Save** with `v`. The post and its media go into a folder you pick, and the saved screen works offline.
+- **Open a link** in your default browser with `o`, or click a post link or bio link.
 - **Copy a link** with `c`.
 
 ## Good to know
@@ -66,7 +67,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 |---|---|
 | Home | `:` search, `tab` platform, `l` logins, `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out; `-` forget |
-| Posts | `/` filter, `v` save, `c` copy link |
+| Posts | `/` filter, `v` save, `o` open link, `c` copy link |
 | Account | `+` save account, `-` unsave, `m` load every older post (again to pause), `r` refresh |
 | Saved | `x` delete |
 | Player | `a`/`d` previous/next item (or skip 3 seconds in a single video), click for next, space pause, `q` close |

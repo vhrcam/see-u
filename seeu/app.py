@@ -18,7 +18,7 @@ from .feed import Feed
 from .logins import Logins, lights
 from .saved import Saved
 from .search import PLATFORMS, Results
-from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, WHITE, Nav, short_ago, short_date
+from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, WHITE, Nav, short_ago, short_date, web_url
 
 THEME = Theme(
     name="see-u",
@@ -319,6 +319,12 @@ class SeeU(App):
     CSS_PATH = "see.tcss"
     TITLE = "see u"
     ENABLE_COMMAND_PALETTE = False
+
+    def action_open_link(self, url):
+        url = web_url(url)
+        if url:
+            self.open_url(url)
+            self.notify("opened in your browser", timeout=2)
 
     def on_mount(self):
         store.prune()

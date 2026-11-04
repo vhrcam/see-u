@@ -8,7 +8,7 @@ from textual.widgets import Footer, Static
 
 from . import fetch, store
 from .browse import Browser
-from .widgets import ACCENT, BRIGHT, DIM, SOFT, TEXT, WHITE, FilterBar, Posts, Preview, exact, long_date
+from .widgets import ACCENT, BRIGHT, DIM, SOFT, TEXT, WHITE, FilterBar, Posts, Preview, exact, link, long_date
 
 
 def profile_text(prof, platform, added=False):
@@ -27,7 +27,12 @@ def profile_text(prof, platform, added=False):
     if prof.get("bio"):
         t.append(prof["bio"].strip() + "\n", style=BRIGHT)
     if prof.get("links"):
-        t.append("links  " + "  ·  ".join(l.replace("https://", "").replace("http://", "") for l in prof["links"][:4]) + "\n", style=SOFT)
+        t.append("links  ", style=SOFT)
+        for i, l in enumerate(prof["links"][:4]):
+            if i:
+                t.append("  ·  ", style=SOFT)
+            t.append(l.replace("https://", "").replace("http://", ""), style=link(l, DIM))
+        t.append("\n")
     if prof.get("highlights"):
         t.append("highlights  " + "  ·  ".join(prof["highlights"][:8]) + "\n", style=SOFT)
     if prof.get("private"):
