@@ -1,4 +1,3 @@
-import calendar
 import http.cookiejar
 import json
 import re
@@ -6,6 +5,7 @@ import threading
 import time
 from datetime import datetime
 from datetime import time as clock
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 import instaloader
@@ -19,6 +19,7 @@ IG_EPOCH = 1314220021721
 PACIFIC = ZoneInfo("America/Los_Angeles")
 POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
+IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
     ("instagram", re.compile(r"instagram\.com/(?!p/|reels?/|stories/|explore/)([A-Za-z0-9_.]+)", re.I)),
@@ -237,8 +238,49 @@ def _ig_errors(fn):
         raise Unavailable("instagram is rate-limiting right now, try again in a few minutes")
     except instaloader.LoginRequiredException:
         raise Unavailable("instagram says this session has ended. reconnect it with l on the home screen")
+    except instaloader.AbortDownloadException:
+        raise Unavailable("instagram stopped that request. give it a while and check your account in a browser")
     except instaloader.ConnectionException:
         raise Unavailable("instagram wouldn't load that right now, try again in a bit")
+
+
+def _embedded(obj):
+    if isinstance(obj, dict):
+        box = obj.get("__bbox")
+        result = box.get("result") if isinstance(box, dict) else None
+        if isinstance(result, dict) and isinstance(result.get("data"), dict):
+            yield result["data"]
+        for v in obj.values():
+            yield from _embedded(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _embedded(v)
+
+
+def _ig_page(path):
+    try:
+        r = requests.get(f"https://www.instagram.com/{path}", cookies=sessions.jar("instagram"), timeout=25,
+                         allow_redirects=False, headers={**IG_PAGE, "User-Agent": _agent("instagram")})
+    except requests.RequestException:
+        raise Unavailable("instagram wouldn't load that right now, try again in a bit")
+    if r.status_code == 404:
+        raise NotFound(path)
+    if r.status_code == 429:
+        raise Unavailable("instagram is rate-limiting right now, try again in a few minutes")
+    if r.is_redirect:
+        where = urlparse(r.headers.get("location", "")).path
+        if where == "/" or where.startswith("/accounts/login"):
+            raise NeedsLogin("instagram says this session has ended. reconnect it with l on the home screen")
+        raise Unavailable("instagram wants to check your account. open it in a browser, then try again")
+    if r.status_code != 200:
+        raise Unavailable("instagram wouldn't load that right now, try again in a bit")
+    parts = []
+    for script in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>', r.text, re.S):
+        try:
+            parts.extend(_embedded(json.loads(script.group(1))))
+        except ValueError:
+            continue
+    return parts
 
 
 def _instagram(handle):
@@ -587,22 +629,34 @@ def _tiktok_details(post):
     return out
 
 
+def _ig_best(options):
+    return max(options, key=lambda o: o.get("width") or 0)["url"]
+
+
+def _ig_media(item):
+    media = []
+    for part in item.get("carousel_media") or [item]:
+        if part.get("video_versions"):
+            media.append(["video", _ig_best(part["video_versions"])])
+        elif (part.get("image_versions2") or {}).get("candidates"):
+            media.append(["photo", _ig_best(part["image_versions2"]["candidates"])])
+    return media
+
+
 def _instagram_details(post):
-    name = f"cache/details/{post['id']}.json"
+    name = f"cache/details/instagram_{post['id']}.json"
     c = store.load(name)
     if c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     with _locks["instagram"]:
-        p = _ig_errors(lambda: instaloader.Post.from_shortcode(_loader.context, post["id"]))
-        media = []
-        if p.typename == "GraphSidecar":
-            for node in p.get_sidecar_nodes():
-                media.append(["video", node.video_url] if node.is_video else ["photo", node.display_url])
-        elif p.is_video:
-            media.append(["video", p.video_url])
-        else:
-            media.append(["photo", p.url])
-        out = {"likes": p.likes, "comments": p.comments, "media": media, "time": calendar.timegm(p.date_utc.timetuple())}
-    out["at"] = time.time()
+        parts = _ig_page(f"p/{post['id']}/")
+    info = next((d["xdt_api__v1__media__shortcode__web_info"] for d in parts
+                 if d.get("xdt_api__v1__media__shortcode__web_info")), {})
+    items = info.get("items") or []
+    if not items:
+        raise Unavailable("instagram wouldn't load that post right now")
+    n = items[0]
+    out = {"likes": n.get("like_count"), "comments": n.get("comment_count"), "views": n.get("play_count") or n.get("view_count"),
+           "media": _ig_media(n), "time": n.get("taken_at"), "at": time.time()}
     store.save(name, out)
     return out
