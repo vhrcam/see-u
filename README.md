@@ -4,7 +4,7 @@ A terminal app for browsing TikTok, Instagram, and Snapchat with your own accoun
 
 ## Sign in
 
-Press `l` for the logins menu. Pick a platform and a browser window opens on that platform's real sign-in page. Sign in the way you normally would, including 2FA, and the window closes by itself when you're in.
+Press `l` for the logins menu. Pick a platform and a browser window opens on that platform's real sign-in page. Sign in the way you normally would, including 2FA, and the window closes by itself within about 30 seconds of you getting in. Nothing is attached to the browser while you sign in. see u reads the session afterward.
 
 - A bright light means the account is connected. A dim blue light means it's signed out.
 - Signed-out accounts stay on the list, so getting back in is one press of enter.

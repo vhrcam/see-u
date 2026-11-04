@@ -3,9 +3,11 @@ import os
 import plistlib
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import time
+from contextlib import closing
 from pathlib import Path
 
 import requests
@@ -43,6 +45,10 @@ class TimedOut(Exception):
 
 
 class Unsure(Exception):
+    pass
+
+
+class Failed(Exception):
     pass
 
 
@@ -117,25 +123,25 @@ def browser_name():
 
 
 class Browser:
-    def __init__(self, profile, url):
+    def __init__(self, profile, url, headless=False):
         exe = browser()
         if not exe:
             raise NoBrowser("see u signs in through Chrome, Brave, Edge, Chromium, or Vivaldi. install one and try again")
         Path(profile).mkdir(parents=True, exist_ok=True)
         self.ports = Path(profile) / "DevToolsActivePort"
         self.ports.unlink(missing_ok=True)
-        args = [exe, f"--user-data-dir={profile}", "--remote-debugging-port=0", "--no-first-run",
-                "--no-default-browser-check", "--new-window"]
+        args = [exe, f"--user-data-dir={profile}", "--no-first-run", "--no-default-browser-check"]
         if sys.platform == "darwin":
             args.append("--use-mock-keychain")
+        args += ["--headless=new", "--remote-debugging-port=0"] if headless else ["--new-window"]
         self.proc = subprocess.Popen(args + [url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.ws = None
         self.n = 0
 
-    def attach(self, cancelled):
+    def attach(self):
         for _ in range(150):
-            if cancelled() or self.proc.poll() is not None:
-                raise Cancelled()
+            if self.proc.poll() is not None:
+                raise Failed()
             if self.ports.exists():
                 lines = self.ports.read_text().split()
                 if len(lines) == 2:
@@ -143,7 +149,7 @@ class Browser:
                                                           timeout=10)
                     return
             time.sleep(0.2)
-        raise TimedOut()
+        raise Failed()
 
     def call(self, method, **params):
         self.n += 1
@@ -159,7 +165,7 @@ class Browser:
                 for c in items if c["domain"].lstrip(".").endswith(domain)]
 
     def agent(self):
-        return self.call("Browser.getVersion").get("userAgent")
+        return self.call("Browser.getVersion").get("userAgent", "").replace("HeadlessChrome", "Chrome")
 
     def close(self):
         try:
@@ -168,45 +174,79 @@ class Browser:
                 self.ws.close()
         except Exception:
             pass
-        try:
-            self.proc.wait(5)
-        except subprocess.TimeoutExpired:
+        if self.proc.poll() is None and not self.ws:
             self.proc.terminate()
+        try:
+            self.proc.wait(10)
+        except subprocess.TimeoutExpired:
+            self.proc.kill()
+            self.proc.wait(5)
+
+
+def _chrome_now():
+    return int((time.time() + 11644473600) * 1000000)
+
+
+def _saved_cookies(profile, domain):
+    rows = []
+    for db in (Path(profile) / "Default" / "Network" / "Cookies", Path(profile) / "Default" / "Cookies"):
+        if not db.exists():
+            continue
+        try:
+            with closing(sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True)) as con:
+                rows += con.execute("SELECT name, host_key, last_update_utc FROM cookies").fetchall()
+        except sqlite3.Error:
+            continue
+    return [(name, when) for name, host, when in rows if host.lstrip(".").endswith(domain)]
+
+
+def _login_time(profile, info):
+    return max((when for name, when in _saved_cookies(profile, info["domain"]) if name == info["cookie"]), default=0)
+
+
+def _read_session(platform, profile, check):
+    b = Browser(profile, "about:blank", headless=True)
+    try:
+        b.attach()
+        cookies, agent = b.cookies(LOGIN[platform]["domain"]), b.agent()
+    finally:
+        b.close()
+    for _ in range(3):
+        try:
+            who = check(platform, cookies, agent)
+        except (requests.RequestException, ValueError, Unsure):
+            time.sleep(3)
+            continue
+        return (who, cookies, agent) if who else None
+    return None
 
 
 def sign_in(platform, profile, cancelled, check=None, url=None):
     info = LOGIN[platform]
     check = check or whoami
-    b = Browser(profile, url or info["url"])
-    tried = None
+    if _login_time(profile, info):
+        found = _read_session(platform, profile, check)
+        if found:
+            return found
+    start = _chrome_now()
+    window = Browser(profile, url or info["url"])
     try:
-        b.attach(cancelled)
-        agent = b.agent()
         end = time.time() + WAIT
-        while time.time() < end:
-            if cancelled() or b.proc.poll() is not None:
+        while True:
+            closed = window.proc.poll() is not None
+            if _login_time(profile, info) > start:
+                break
+            if cancelled() or closed:
                 raise Cancelled()
-            try:
-                cookies = b.cookies(info["domain"])
-            except (websocket.WebSocketException, OSError):
-                raise Cancelled()
-            token = next((c["value"] for c in cookies if c["name"] == info["cookie"]), None)
-            if token and token != tried:
-                time.sleep(1.5)
-                cookies = b.cookies(info["domain"])
-                try:
-                    who = check(platform, cookies, agent)
-                except (requests.RequestException, Unsure):
-                    who = None
-                    time.sleep(5)
-                else:
-                    tried = token
-                if who:
-                    return who, cookies, agent
+            if time.time() > end:
+                raise TimedOut()
             time.sleep(1)
-        raise TimedOut()
     finally:
-        b.close()
+        window.close()
+    found = _read_session(platform, profile, check)
+    if not found:
+        raise Failed()
+    return found
 
 
 def recheck():

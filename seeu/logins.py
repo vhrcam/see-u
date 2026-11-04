@@ -70,7 +70,7 @@ class Logins(Screen):
         t.append("logins\n", style="bold " + WHITE)
         if self.busy:
             t.append(f"finish signing in to {self.busy[0]} in the {signin.browser_name()} window. ", style=ACCENT)
-            t.append("it closes by itself when you're in. esc cancels", style=DIM)
+            t.append("it closes by itself within about 30 seconds of you getting in. esc cancels", style=DIM)
         else:
             t.append("your password stays in the browser window. see u only keeps the signed-in session, on this computer", style=DIM)
         return t
