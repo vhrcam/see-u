@@ -15,6 +15,7 @@ from . import fetch, media, sessions, store
 from .account import Account
 from .eye import blink, eye, glance, shimmer
 from .feed import Feed
+from .logins import Logins
 from .saved import Saved
 from .search import PLATFORMS, Results
 from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, WHITE, Nav, short_ago, short_date
@@ -113,6 +114,7 @@ class Home(Screen):
         Binding("tab", "platform", "platform", priority=True),
         Binding("f", "feed", "feed"),
         Binding("v", "saved", "saved posts"),
+        Binding("l", "logins", "logins"),
         Binding("r", "refresh", "refresh"),
         Binding("x", "remove", "unsave"),
         Binding("escape", "leave_search", "done typing", show=False),
@@ -177,7 +179,7 @@ class Home(Screen):
         box.display = bool(self.rows)
         box.highlighted = min(keep, len(self.rows) - 1) if self.rows and keep is not None else None
         hint = "" if self.rows else ("type a handle below to look someone up. tab switches the platform."
-                                     if sessions.connected() else "connect an account to get started.")
+                                     if sessions.connected() else "press l to connect an account and get started.")
         self.query_one("#hint", Static).update(Text(hint, style=DIM))
         self.query_one("#hint", Static).display = not self.rows
         self.query_one("#right").display = bool(self.rows)
@@ -200,7 +202,7 @@ class Home(Screen):
         typing = isinstance(self.focused, Input)
         if action == "remove":
             return bool(self.rows) and not typing and self.query_one("#accounts", OptionList).highlighted is not None
-        if action in ("quit_list", "feed", "saved", "refresh"):
+        if action in ("quit_list", "feed", "saved", "refresh", "logins"):
             return not typing
         if action in ("quit_typing", "leave_search"):
             return typing
@@ -243,6 +245,9 @@ class Home(Screen):
 
     def action_saved(self):
         self.app.push_screen(Saved())
+
+    def action_logins(self):
+        self.app.push_screen(Logins())
 
     def action_refresh(self):
         self.notify("checking your accounts for new posts…", timeout=3)
@@ -293,7 +298,7 @@ class Home(Screen):
             self.notify("type a handle, or paste a profile link", severity="warning")
             return
         if not sessions.connected():
-            self.notify("connect an account first", severity="warning")
+            self.notify("connect an account first: click off the search box and press l", severity="warning")
             return
         if platform and platform != self.platform:
             self.platform = platform

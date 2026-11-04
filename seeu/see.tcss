@@ -132,6 +132,16 @@ FolderPick {
     margin-bottom: 1;
 }
 
+#loginhead {
+    height: auto;
+    margin: 1 2 0 2;
+}
+
+#logins {
+    height: 1fr;
+    margin: 1 2 0 2;
+}
+
 #searching {
     height: auto;
     margin: 1 2 0 2;
