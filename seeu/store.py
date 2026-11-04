@@ -8,7 +8,7 @@ from pathlib import Path
 HOME = Path(os.environ.get("SEEU_HOME") or Path.home() / ".seeu")
 _lock = threading.RLock()
 stopped = False
-LOGIN_DATA = ["logins.json", "sessions", "browser", "cache", "tmp", "signin.log"]
+LOGIN_DATA = ["logins.json", "sessions", "browser", "cache", "tmp"]
 COMMANDS = {
     "/removeme": (LOGIN_DATA, "your accounts are off see u on this computer. saved accounts and saved posts were kept"),
     "/wipe": (LOGIN_DATA + ["accounts.json", "seen.json", "saved", "mpv-keys.conf", "known.json"],
