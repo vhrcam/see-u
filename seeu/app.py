@@ -11,7 +11,7 @@ from textual.theme import Theme
 from textual.widgets import Footer, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from . import fetch, media, sessions, store
+from . import fetch, media, sessions, signin, store
 from .account import Account
 from .eye import blink, eye, glance, shimmer
 from .feed import Feed
@@ -150,6 +150,7 @@ class Home(Screen):
         self.show_platform()
         self.fill(focus=True)
         self.refresh_all()
+        self.check_logins()
         self.set_timer(random.uniform(3, 6), self.idle)
 
     def idle(self):
@@ -198,6 +199,11 @@ class Home(Screen):
                 fetch.account(a["platform"], a["handle"], fresh)
             except Exception:
                 continue
+            self.app.call_from_thread(self.fill)
+
+    @work(thread=True, group="logins")
+    def check_logins(self):
+        if signin.recheck():
             self.app.call_from_thread(self.fill)
 
     def check_action(self, action, parameters):
