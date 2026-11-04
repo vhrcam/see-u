@@ -147,7 +147,7 @@ class Home(Screen):
                 yield Static(id="newest")
         with Horizontal(id="searchbar"):
             yield Static(id="where")
-            yield Input(placeholder="handle/profile link", id="search")
+            yield Input(placeholder="handle/profile link", id="search", select_on_focus=False)
         yield Footer()
 
     def on_mount(self):
