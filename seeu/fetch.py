@@ -21,6 +21,7 @@ POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
 IG_SEARCH_DOC = "27706427925724183"
+IG_COMMENTS_DOC = "28862333703438672"
 IG_PAUSE = 3
 STORY_KINDS = ("story", "highlight")
 LINKS = [
@@ -169,6 +170,13 @@ def _tt_story(handle, prof):
             "thumb": (items[-1].get("video") or {}).get("cover") or next((u for k, u in media if k == "photo"), None),
             "views": None, "likes": None, "comments": None, "duration": None, "pinned": False, "media": media,
             "items": len(media), "expires": (last or time.time()) + 86400}
+
+
+def _tt_comments(post, cursor):
+    d = _tt_json("comment/list/", aweme_id=post["id"], count="20", cursor=cursor or "0")
+    items = [{"user": (c.get("user") or {}).get("unique_id") or "?", "text": c.get("text") or "", "time": c.get("create_time"),
+              "likes": c.get("digg_count"), "replies": c.get("reply_comment_total")} for c in d.get("comments") or []]
+    return {"items": items, "cursor": str(d["cursor"]) if d.get("has_more") and d.get("cursor") else None, "total": d.get("total")}
 
 
 def _tiktok_page(y, handle):
@@ -385,6 +393,40 @@ def instagram_search(query):
     users = [u["user"] for u in conn.get("users") or [] if (u.get("user") or {}).get("username")]
     return [{"handle": u["username"].lower(), "name": u.get("full_name") or u["username"],
              "verified": bool(u.get("is_verified")), "context": u.get("search_social_context")} for u in users]
+
+
+def _ig_comment(n):
+    u = n.get("user") or {}
+    return {"user": u.get("username") or "?", "verified": bool(u.get("is_verified")), "time": n.get("created_at"),
+            "text": n.get("text") or ("(gif)" if n.get("giphy_media_info") else ""),
+            "likes": n.get("comment_like_count"), "replies": n.get("child_comment_count")}
+
+
+def _ig_thread(conn):
+    page = (conn or {}).get("page_info") or {}
+    return {"items": [_ig_comment(e["node"]) for e in (conn or {}).get("edges") or []],
+            "cursor": page.get("end_cursor") if page.get("has_next_page") else None}
+
+
+def _ig_comments(post, cursor):
+    d = _instagram_details(post)
+    if not cursor:
+        return {**d["thread"], "total": d.get("comments")}
+    variables = {"after": cursor, "first": 20, "is_mobile_web": False, "media_id": d["pk"], "sort_order": "popular",
+                 "__relay_internal__pv__PolarisIsMobileWebrelayprovider": False,
+                 "__relay_internal__pv__PolarisIsLoggedInrelayprovider": True,
+                 "__relay_internal__pv__PolarisThreadsStyleCommentsEnabledrelayprovider": False}
+    with _locks["instagram"]:
+        r = _ig_errors(lambda: _loader.context.doc_id_graphql_query(IG_COMMENTS_DOC, variables, web_api=True))
+    conn = ((r.get("data") or {}).get("comments_media") or {}).get("comments_connection")
+    if conn is None:
+        raise Unavailable("instagram wouldn't send more comments right now")
+    return {**_ig_thread(conn), "total": d.get("comments")}
+
+
+def comments(post, cursor=None):
+    need(post["platform"])
+    return _tt_comments(post, cursor) if post["platform"] == "tiktok" else _ig_comments(post, cursor)
 
 
 def _ig_thumb(item):
@@ -819,7 +861,7 @@ def _ig_highlight(post):
 def _instagram_details(post):
     name = f"cache/details/instagram_{post['id']}.json"
     c = store.load(name)
-    if c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and "thread" in c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     with _locks["instagram"]:
         parts = _ig_page(f"p/{post['id']}/")
@@ -829,7 +871,8 @@ def _instagram_details(post):
     if not items:
         raise Unavailable("instagram wouldn't load that post right now")
     n = items[0]
+    thread = next((d["comments_media"].get("comments_connection") for d in parts if d.get("comments_media")), None)
     out = {"likes": n.get("like_count"), "comments": n.get("comment_count"), "views": n.get("play_count") or n.get("view_count"),
-           "media": _ig_media(n), "time": n.get("taken_at"), "at": time.time()}
+           "media": _ig_media(n), "time": n.get("taken_at"), "pk": str(n.get("pk")), "thread": _ig_thread(thread), "at": time.time()}
     store.save(name, out)
     return out

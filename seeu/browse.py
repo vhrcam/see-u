@@ -6,6 +6,7 @@ from textual.screen import Screen
 from textual.widgets import Input
 
 from . import fetch, media
+from .comments import Comments
 from .widgets import KIND, FilterBar, Posts, Preview, item_word
 
 
@@ -14,6 +15,7 @@ class Browser(Screen):
         Binding("escape", "back", "back"),
         Binding("slash", "filter", "filter", key_display="/"),
         Binding("v", "save", "save post"),
+        Binding("k", "comments", "comments"),
         Binding("o", "open_link", "open link"),
         Binding("c", "copy", "copy link"),
     ]
@@ -30,6 +32,10 @@ class Browser(Screen):
         posts = self.query_one(Posts)
         if action in ("copy", "open_link", "save", "open", "delete"):
             return posts.current() is not None
+        if action == "comments":
+            p = posts.current()
+            return bool(p and p["platform"] in ("tiktok", "instagram") and p["kind"] not in fetch.STORY_KINDS
+                        and not p.get("saved_dir"))
         if action == "filter":
             return posts.option_count > 0 or bool(self.words)
         return True
@@ -48,6 +54,7 @@ class Browser(Screen):
         p = self.query_one(Posts).current()
         self.current = p
         preview = self.query_one(Preview)
+        self.refresh_bindings()
         preview.show(p, self.extra.get(p["id"]) if p else None)
         preview.picture(None)
         if p:
@@ -129,6 +136,11 @@ class Browser(Screen):
             self.app.call_from_thread(self.notify, f"saved to {folder}. it works offline now")
         except Exception:
             self.app.call_from_thread(self.notify, "couldn't save that one right now", severity="error")
+
+    def action_comments(self):
+        p = self.query_one(Posts).current()
+        if p:
+            self.app.push_screen(Comments(p))
 
     def action_open_link(self):
         p = self.query_one(Posts).current()

@@ -142,6 +142,20 @@ FolderPick {
     margin: 1 2 0 2;
 }
 
+#commenthead {
+    height: auto;
+    margin: 1 2 0 2;
+}
+
+#commentbody {
+    height: 1fr;
+    margin: 1 2 0 2;
+}
+
+#commentlist {
+    height: auto;
+}
+
 #searching {
     height: auto;
     margin: 1 2 0 2;
