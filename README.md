@@ -9,7 +9,7 @@ Press `l` for the logins menu, or `ctrl+l` while the search box is active. Pick 
 - A bright light means the account is connected. A dim blue light means it's signed out.
 - Signed-out accounts stay on the list, so getting back in is one press of enter.
 - A platform that's already connected shows `- connected` and can't be clicked. To add another account on it, sign out first. You can then reconnect the first one from the list and press enter on either to switch.
-- `x` signs out and deletes that account's saved session. `-` also takes it off the list.
+- `x` signs out and deletes that account's saved session. The account stays on the list until you use `/removeme` or `/wipe`.
 
 Two commands clear things right away, with no confirmation. Type one in the home screen's search box, or run it from the terminal (`seeu /removeme`):
 
@@ -76,7 +76,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 | Where | Keys |
 |---|---|
 | Home | `:` search, `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
-| Logins | enter connect, reconnect, or switch; `x` sign out; `-` forget |
+| Logins | enter connect, reconnect, or switch; `x` sign out |
 | Posts | `/` filter, `k` comments, `v` save, `o` open link, `c` copy link |
 | Account | `+` save account, `-` unsave, `m` load every older post (again to pause), `r` refresh |
 | Saved | `x` delete |

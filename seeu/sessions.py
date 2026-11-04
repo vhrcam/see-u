@@ -123,9 +123,3 @@ def expire(login):
 def sign_out(login):
     expire(login)
     shutil.rmtree(browser_profile(login["platform"], login["user"]), ignore_errors=True)
-
-
-def forget(login):
-    sign_out(login)
-    with store._lock:
-        _write([l for l in logins() if not (l["platform"] == login["platform"] and l["user"] == login["user"])])

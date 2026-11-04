@@ -68,7 +68,6 @@ class Logins(Screen):
     BINDINGS = [
         Binding("escape", "back", "back"),
         Binding("x", "sign_out", "sign out"),
-        Binding("minus", "forget", "forget", key_display="-"),
     ]
 
     def __init__(self):
@@ -181,8 +180,6 @@ class Logins(Screen):
         if action == "sign_out":
             l = self.selected()
             return bool(l and sessions.is_on(l)) and not self.busy
-        if action == "forget":
-            return bool(self.selected()) and not self.busy
         return True
 
     def on_option_list_option_highlighted(self, event):
@@ -253,13 +250,6 @@ class Logins(Screen):
         if l:
             sessions.sign_out(l)
             self.notify(f"signed out @{l['user']}. press enter to reconnect", timeout=4)
-            self.fill()
-
-    def action_forget(self):
-        l = self.selected()
-        if l:
-            sessions.forget(l)
-            self.notify(f"forgot @{l['user']}", timeout=3)
             self.fill()
 
     def action_back(self):
