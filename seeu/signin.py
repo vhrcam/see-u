@@ -9,6 +9,7 @@ import sys
 import time
 from contextlib import closing
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 import websocket
@@ -28,7 +29,7 @@ WINDOWS_APPS = {"ChromeHTML": r"Google\Chrome\Application\chrome.exe",
                 "BraveHTML": r"BraveSoftware\Brave-Browser\Application\brave.exe",
                 "MSEdgeHTM": r"Microsoft\Edge\Application\msedge.exe"}
 LINUX_APPS = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge"]
-IG_APP = "936619743392459"
+IG_VIEWER = '"PolarisViewer",[],'
 WAIT = 900
 
 
@@ -279,19 +280,21 @@ def whoami(platform, cookies, agent):
 
 
 def _instagram_me(cookies, agent):
-    jar = {c["name"]: c["value"] for c in cookies}
-    uid = jar.get("ds_user_id")
-    if not uid:
+    if not any(c["name"] == "ds_user_id" for c in cookies):
         return None
-    s = http(cookies, agent)
-    s.headers.update({"X-IG-App-ID": IG_APP, "X-CSRFToken": jar.get("csrftoken", ""),
-                      "Referer": "https://www.instagram.com/"})
-    r = s.get(f"https://www.instagram.com/api/v1/users/{uid}/info/", timeout=20, allow_redirects=False)
-    if r.status_code in (401, 403) or r.is_redirect:
-        return None
-    if r.status_code != 200:
+    r = http(cookies, agent).get("https://www.instagram.com/", timeout=20, allow_redirects=False)
+    if r.is_redirect:
+        where = urlparse(r.headers.get("location", "")).path
+        if where == "/" or where.startswith("/accounts/login"):
+            return None
         raise Unsure()
-    u = r.json().get("user") or {}
+    start = r.text.find(IG_VIEWER)
+    if r.status_code != 200 or start < 0:
+        raise Unsure()
+    viewer = json.JSONDecoder().raw_decode(r.text, start + len(IG_VIEWER))[0]
+    if viewer.get("data") is None:
+        return None
+    u = viewer["data"]
     if not u.get("username"):
         raise Unsure()
     return {"user": u["username"], "name": u.get("full_name")}
