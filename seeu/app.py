@@ -15,7 +15,7 @@ from . import fetch, media, sessions, store
 from .account import Account
 from .eye import blink, eye, glance, shimmer
 from .feed import Feed
-from .logins import Logins
+from .logins import Logins, lights
 from .saved import Saved
 from .search import PLATFORMS, Results
 from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, WHITE, Nav, short_ago, short_date
@@ -65,7 +65,9 @@ def title(accounts=0, new=0, saved=0):
     t.append("      s  e  e\n", style="bold #a5f3fc")
     t.append("                  u\n", style="bold #22d3ee")
     t.append("\n")
-    t.append("\n")
+    t.append("  ")
+    t.append_text(lights())
+    t.append("\n\n")
     t.append(f"{accounts} accounts", style="#67e8f9")
     t.append("  ·  ", style="#0e7490")
     t.append(f"{new} new", style="bold #a5f3fc" if new else "#67e8f9")
