@@ -19,6 +19,7 @@ IG_EPOCH = 1314220021721
 PACIFIC = ZoneInfo("America/Los_Angeles")
 POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
+IG_PAUSE = 3
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
@@ -580,7 +581,7 @@ def older(platform, handle, step, stop):
                 c["end"] = True
                 break
             add([_ig_post(n, handle) for n in nodes])
-            time.sleep(1)
+            time.sleep(IG_PAUSE)
     store.save(cache_name(platform, handle), c)
     return c
 
