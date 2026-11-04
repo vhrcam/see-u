@@ -299,10 +299,11 @@ class Home(Screen):
         search.cursor_position = 1
         search.focus()
 
-    def remove_me(self):
-        store.wipe()
-        atexit.register(store.wipe)
-        self.app.exit(message="your accounts are gone from see u on this computer. saved posts were kept in ~/.seeu/saved")
+    def run_command(self, text):
+        names, message = store.COMMANDS[text]
+        store.erase(names)
+        atexit.register(store.erase, names)
+        self.app.exit(message=message)
 
     def action_leave_search(self):
         self.query_one("#search", Input).value = ""
@@ -322,8 +323,8 @@ class Home(Screen):
 
     def on_input_submitted(self, event):
         text = event.value.strip().lower()
-        if text == "/removeme":
-            self.remove_me()
+        if text in store.COMMANDS:
+            self.run_command(text)
             return
         if text.startswith("/"):
             self.notify(f"no command called {text}", severity="warning")

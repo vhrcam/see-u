@@ -1,17 +1,16 @@
 import subprocess
 import sys
 
-REMOVED = "your accounts are gone from see u on this computer. saved posts were kept in ~/.seeu/saved"
+from . import store
 
 args = sys.argv[1:]
 if args == ["update"]:
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U", "yt-dlp", "instaloader"])
     print("see u's fetchers are up to date")
-elif args == ["/removeme"]:
-    from .store import wipe
-
-    wipe()
-    print(REMOVED)
+elif len(args) == 1 and args[0].lower() in store.COMMANDS:
+    names, message = store.COMMANDS[args[0].lower()]
+    store.erase(names)
+    print(message)
 elif args:
     print("just type:  seeu")
 else:

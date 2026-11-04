@@ -7,7 +7,13 @@ from pathlib import Path
 
 HOME = Path(os.environ.get("SEEU_HOME") or Path.home() / ".seeu")
 _lock = threading.RLock()
-wiped = False
+stopped = False
+LOGIN_DATA = ["logins.json", "sessions", "browser", "cache", "tmp", "signin.log"]
+COMMANDS = {
+    "/removeme": (LOGIN_DATA, "your accounts are off see u on this computer. saved accounts and saved posts were kept"),
+    "/wipe": (LOGIN_DATA + ["accounts.json", "seen.json", "saved", "mpv-keys.conf", "known.json"],
+              "see u is wiped from this computer: accounts, sign-ins, saved accounts, and saved posts"),
+}
 
 
 def path(*parts):
@@ -24,7 +30,7 @@ def load(name, default=None):
 
 
 def save(name, data):
-    if wiped:
+    if stopped:
         return
     p = path(name)
     tmp = p.with_name(f"{p.name}.{threading.get_ident()}.tmp")
@@ -78,17 +84,22 @@ def unseen(platform, handle, posts):
     return {p["id"] for p in posts if p["id"] not in s}
 
 
-def wipe():
-    global wiped
-    wiped = True
+def erase(names):
+    global stopped
+    stopped = True
     with _lock:
-        for f in HOME.glob("*"):
-            if f.name == "saved":
-                continue
+        for name in names:
+            f = HOME / name
             if f.is_dir():
                 shutil.rmtree(f, ignore_errors=True)
             else:
                 f.unlink(missing_ok=True)
+        for f in HOME.glob("*.tmp"):
+            f.unlink(missing_ok=True)
+        try:
+            HOME.rmdir()
+        except OSError:
+            pass
 
 
 def clear_platform(platform):
