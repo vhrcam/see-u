@@ -160,7 +160,7 @@ class Logins(Screen):
 
     def begin(self, platform, user):
         if not signin.browser():
-            self.notify("see u signs in through Chrome, Brave, Edge, or Chromium. install one and try again",
+            self.notify("see u signs in through Chrome, Brave, Edge, Chromium, or Vivaldi. install one and try again",
                         severity="error", timeout=8)
             return
         self.busy = (platform, user)

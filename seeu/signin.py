@@ -120,7 +120,7 @@ class Browser:
     def __init__(self, profile, url):
         exe = browser()
         if not exe:
-            raise NoBrowser("see u signs in through Chrome, Brave, Edge, or Chromium. install one and try again")
+            raise NoBrowser("see u signs in through Chrome, Brave, Edge, Chromium, or Vivaldi. install one and try again")
         Path(profile).mkdir(parents=True, exist_ok=True)
         self.ports = Path(profile) / "DevToolsActivePort"
         self.ports.unlink(missing_ok=True)
