@@ -566,8 +566,10 @@ def cached(platform, handle):
 
 
 def _order(posts):
-    top = {"story": 0, "highlight": 1}
-    return sorted(posts, key=lambda p: (top.get(p["kind"], 2), not p.get("pinned"), -(p["time"] or 0)))
+    def top(p):
+        return 0 if p["kind"] == "story" else 1 if p["kind"] == "highlight" and p["platform"] == "instagram" else 2
+
+    return sorted(posts, key=lambda p: (top(p), not p.get("pinned"), -(p["time"] or 0)))
 
 
 _missing = {}
