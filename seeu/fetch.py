@@ -19,8 +19,8 @@ IG_EPOCH = 1314220021721
 PACIFIC = ZoneInfo("America/Los_Angeles")
 POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
-IG_PAUSE = 3
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
+IG_PAUSE = 3
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
     ("instagram", re.compile(r"instagram\.com/(?!p/|reels?/|stories/|explore/)([A-Za-z0-9_.]+)", re.I)),
@@ -284,6 +284,33 @@ def _ig_page(path):
     return parts
 
 
+def _ig_timeline(page_id, handle, cursor=None):
+    extra = {"first_data": {"edges": [], "page_info": {"has_next_page": True, "end_cursor": cursor}}} if cursor else {}
+    return instaloader.NodeIterator(
+        context=_loader.context,
+        query_hash=None,
+        doc_id=IG_POSTS_DOC,
+        web_api=True,
+        edge_extractor=lambda d: d["data"]["node"]["polaris_ordered_timeline_connection"],
+        node_wrapper=lambda n: n,
+        query_variables={"id": page_id, "__relay_internal__pv__PolarisSEOIsCrawlerrelayprovider": False},
+        query_referer=f"https://www.instagram.com/{handle}/",
+        **extra,
+    )
+
+
+def _ig_private_posts(page_id, handle):
+    it = _ig_timeline(page_id, handle)
+    nodes = []
+    with _locks["instagram"]:
+        for n in it:
+            nodes.append(n)
+            if len(nodes) >= 12:
+                break
+    page = (getattr(it, "_data", None) or {}).get("page_info") or {}
+    return nodes, page.get("end_cursor") if page.get("has_next_page") else None
+
+
 def _instagram(handle):
     with _locks["instagram"]:
         try:
@@ -321,7 +348,15 @@ def _instagram(handle):
         "page_id": (timeline or {}).get("id"),
         "cursor": info.get("end_cursor") if info.get("has_next_page") else None,
     }
-    return prof, [_ig_post(e["node"], handle) for e in conn.get("edges") or []]
+    posts = [_ig_post(e["node"], handle) for e in conn.get("edges") or []]
+    if prof["private"] and user.get("id"):
+        try:
+            nodes, prof["cursor"] = _ig_private_posts(user["id"], handle)
+        except Exception:
+            nodes = []
+        prof["page_id"] = user["id"]
+        posts = [_ig_post(n, handle) for n in nodes]
+    return prof, posts
 
 
 def _v(x):
@@ -551,18 +586,7 @@ def older(platform, handle, step, stop):
                 c["end"] = True
                 store.save(cache_name(platform, handle), c)
                 return c
-            it = instaloader.NodeIterator(
-                context=_loader.context,
-                query_hash=None,
-                doc_id=IG_POSTS_DOC,
-                web_api=True,
-                edge_extractor=lambda d: d["data"]["node"]["polaris_ordered_timeline_connection"],
-                node_wrapper=lambda n: n,
-                query_variables={"id": c["profile"]["page_id"],
-                                 "__relay_internal__pv__PolarisSEOIsCrawlerrelayprovider": False},
-                query_referer=f"https://www.instagram.com/{handle}/",
-                first_data={"edges": [], "page_info": {"has_next_page": True, "end_cursor": cursor}},
-            )
+            it = _ig_timeline(c["profile"]["page_id"], handle, cursor)
             _iters[handle] = it
         while not stop():
             nodes = []
