@@ -204,21 +204,23 @@ def _login_time(profile, info):
     return max((when for name, when in _saved_cookies(profile, info["domain"]) if name == info["cookie"]), default=0)
 
 
-def _read_session(platform, profile, check):
+def _read_session(platform, profile, check, fresh=False):
     b = Browser(profile, "about:blank", headless=True)
     try:
         b.attach()
         cookies, agent = b.cookies(LOGIN[platform]["domain"]), b.agent()
     finally:
         b.close()
+    who = None
     for _ in range(3):
         try:
             who = check(platform, cookies, agent)
+            break
         except (requests.RequestException, ValueError, Unsure):
             time.sleep(3)
-            continue
-        return (who, cookies, agent) if who else None
-    return None
+    if who:
+        return who, cookies, agent
+    return ({"user": "account", "name": None}, cookies, agent) if fresh else None
 
 
 def sign_in(platform, profile, cancelled, check=None, url=None):
@@ -243,10 +245,7 @@ def sign_in(platform, profile, cancelled, check=None, url=None):
             time.sleep(1)
     finally:
         window.close()
-    found = _read_session(platform, profile, check)
-    if not found:
-        raise Failed()
-    return found
+    return _read_session(platform, profile, check, fresh=True)
 
 
 def recheck():
