@@ -238,13 +238,13 @@ def _tiktok(handle, start=1, sec_uid=None):
             if prof and prof.get("missing"):
                 raise NotFound(handle)
             sec_uid = (prof or {}).get("sec_uid")
-        if prof and prof.get("private"):
-            return prof, []
         target = f"tiktokuser:{sec_uid}" if sec_uid else f"https://www.tiktok.com/@{handle}"
         try:
             info = y.extract_info(target, download=False)
             entries = list(info.get("entries") or [])
         except yt_dlp.utils.DownloadError as e:
+            if prof and prof.get("private"):
+                return prof, []
             msg = str(e)
             if "secondary user ID" in msg or "does not exist" in msg:
                 raise NotFound(handle)

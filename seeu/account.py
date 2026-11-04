@@ -33,7 +33,7 @@ def profile_text(prof, platform, added=False):
                 t.append("  ·  ", style=SOFT)
             t.append(l.replace("https://", "").replace("http://", ""), style=link(l, DIM))
         t.append("\n")
-    if prof.get("private"):
+    if prof.get("locked"):
         t.append("private account. its posts show once the account you connected follows it\n", style=ACCENT)
     return t
 
@@ -135,6 +135,7 @@ class Account(Browser):
     def show_profile(self):
         added = store.is_added(self.platform, self.handle)
         prof = dict(self.data["profile"])
+        prof["locked"] = prof.get("private") and not self.data["posts"]
         if prof.get("posts") is None and self.data.get("end") and self.platform == "instagram":
             prof["posts"] = self.post_count()
         self.query_one("#profile", Static).update(profile_text(prof, self.platform, added))
