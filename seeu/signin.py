@@ -301,12 +301,16 @@ def _instagram_me(cookies, agent):
 
 
 def _tiktok_me(cookies, agent):
-    html = http(cookies, agent).get("https://www.tiktok.com/", timeout=20).text
-    m = re.search(r'id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>', html, re.S)
-    if not m:
+    r = http(cookies, agent).get("https://www.tiktok.com/passport/web/account/info/", params={"aid": "1459"}, timeout=20)
+    if r.status_code != 200:
         raise Unsure()
-    u = json.loads(m.group(1)).get("__DEFAULT_SCOPE__", {}).get("webapp.app-context", {}).get("user") or {}
-    return {"user": u["uniqueId"], "name": u.get("nickName")} if u.get("uniqueId") else None
+    d = r.json()
+    u = d.get("data") or {}
+    if u.get("username"):
+        return {"user": u["username"], "name": u.get("screen_name")}
+    if d.get("message") == "error" and u.get("error_code"):
+        return None
+    raise Unsure()
 
 
 def _snapchat_me(cookies, agent):
