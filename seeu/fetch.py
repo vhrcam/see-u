@@ -121,6 +121,56 @@ def _num(v):
         return None
 
 
+def _tt_headers():
+    return {"User-Agent": _agent("tiktok"), "Referer": "https://www.tiktok.com/", "Accept-Language": "en-US,en;q=0.9"}
+
+
+def media_request(post):
+    return {"headers": _tt_headers(), "cookies": sessions.jar("tiktok")} if post["platform"] == "tiktok" else {}
+
+
+def _tt_json(path, **params):
+    try:
+        r = requests.get(f"https://www.tiktok.com/api/{path}", cookies=sessions.jar("tiktok"), timeout=20,
+                         params={"aid": "1988", **params},
+                         headers=_tt_headers())
+        return r.json()
+    except (requests.RequestException, ValueError):
+        raise Unavailable("tiktok wouldn't load that right now, try again in a bit")
+
+
+def _tt_item_media(item):
+    images = (item.get("imagePost") or {}).get("images") or []
+    if images:
+        urls = [((i.get("imageURL") or {}).get("urlList") or [None])[0] for i in images]
+        return [["photo", u] for u in urls if u]
+    video = item.get("video") or {}
+    url = video.get("playAddr") or video.get("downloadAddr")
+    return [["video", url]] if url else []
+
+
+def _tt_story(handle, prof):
+    found, cursor = {}, "0"
+    for _ in range(10):
+        d = _tt_json("story/item_list/", authorId=prof["uid"], secUid=prof["sec_uid"], count="20", cursor=cursor,
+                     loadBackward="false", app_name="tiktok_web", device_platform="web_pc")
+        for item in d.get("itemList") or []:
+            found[item["id"]] = item
+        if not d.get("HasMoreAfter") or not d.get("MaxCursor"):
+            break
+        cursor = d["MaxCursor"]
+    items = sorted(found.values(), key=lambda i: i.get("createTime") or 0)
+    media = [m for i in items for m in _tt_item_media(i)]
+    if not media:
+        return None
+    first, last = items[0].get("createTime"), items[-1].get("createTime")
+    return {"platform": "tiktok", "handle": handle, "id": f"story-{last}", "url": f"https://www.tiktok.com/@{handle}",
+            "time": last, "first": first, "text": "live story", "kind": "story",
+            "thumb": (items[-1].get("video") or {}).get("cover") or next((u for k, u in media if k == "photo"), None),
+            "views": None, "likes": None, "comments": None, "duration": None, "pinned": False, "media": media,
+            "items": len(media), "expires": (last or time.time()) + 86400}
+
+
 def _tiktok_page(y, handle):
     html = y.urlopen(f"https://www.tiktok.com/@{handle}").read().decode("utf-8", "replace")
     m = re.search(r'id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>', html, re.S)
@@ -143,6 +193,8 @@ def _tiktok_page(y, handle):
         "verified": bool(u.get("verified")),
         "private": bool(u.get("privateAccount")),
         "sec_uid": u.get("secUid"),
+        "uid": u.get("id"),
+        "story": bool(u.get("UserStoryStatus")),
     }
 
 
@@ -194,7 +246,15 @@ def _tiktok(handle, start=1, sec_uid=None):
         prof = {"handle": handle, "name": first.get("channel") or handle, "bio": "", "followers": None,
                 "following": None, "likes": None, "posts": None, "verified": False, "private": False,
                 "sec_uid": None}
-    return prof, [_tt_post(e, handle) for e in entries]
+    posts = [_tt_post(e, handle) for e in entries]
+    if start == 1 and prof.get("story") and prof.get("uid") and prof.get("sec_uid"):
+        try:
+            story = _tt_story(handle, prof)
+        except Unavailable:
+            story = None
+        if story:
+            posts.append(story)
+    return prof, posts
 
 
 def _ig_time(pk, caption):
@@ -641,7 +701,7 @@ def older(platform, handle, step, stop):
                 add(batch)
         if not stopped:
             total = c["profile"].get("posts") or 0
-            c["end"] = len(c["posts"]) >= total
+            c["end"] = sum(p["kind"] not in STORY_KINDS for p in c["posts"]) >= total
             c["short"] = not c["end"]
     else:
         it = _iters.get(handle)

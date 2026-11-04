@@ -34,8 +34,8 @@ UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
                     "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"}
 
 
-def get(url, path, headers=None):
-    with requests.get(url, headers=headers or UA, timeout=30, stream=True) as r:
+def get(url, path, headers=None, cookies=None):
+    with requests.get(url, headers=headers or UA, cookies=cookies, timeout=30, stream=True) as r:
         r.raise_for_status()
         with open(path, "wb") as f:
             for chunk in r.iter_content(1 << 16):
@@ -45,7 +45,7 @@ def get(url, path, headers=None):
 
 def download(post, dest, media=None, limit=None):
     dest.mkdir(parents=True, exist_ok=True)
-    if post["platform"] == "tiktok" and not media:
+    if post["platform"] == "tiktok" and not media and not post.get("media"):
         try:
             media = fetch.details(post).get("media")
         except fetch.Unavailable:
@@ -56,8 +56,9 @@ def download(post, dest, media=None, limit=None):
                 return [y.prepare_filename(info)]
     media = (media or post.get("media") or fetch.details(post)["media"])[:limit]
     jobs = [(url, dest / f"{post['id']}_{i + 1}.{'mp4' if kind == 'video' else 'jpg'}") for i, (kind, url) in enumerate(media)]
+    ask = fetch.media_request(post)
     with ThreadPoolExecutor(4) as pool:
-        return list(pool.map(lambda job: get(*job), jobs))
+        return list(pool.map(lambda job: get(*job, **ask), jobs))
 
 
 def player():
