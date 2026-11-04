@@ -121,6 +121,7 @@ class Home(Screen):
         Binding("f", "feed", "feed"),
         Binding("v", "saved", "saved posts"),
         Binding("l", "logins", "logins"),
+        Binding("ctrl+l", "logins_typing", "logins", key_display="ctrl+l"),
         Binding("r", "refresh", "refresh"),
         Binding("x", "remove", "unsave"),
         Binding("escape", "leave_search", "done typing", show=False),
@@ -221,7 +222,7 @@ class Home(Screen):
             return bool(self.rows) and not typing and self.query_one("#accounts", OptionList).highlighted is not None
         if action in ("quit_list", "feed", "saved", "refresh", "logins"):
             return not typing
-        if action in ("quit_typing", "leave_search"):
+        if action in ("quit_typing", "leave_search", "logins_typing"):
             return typing
         return True
 
@@ -264,6 +265,9 @@ class Home(Screen):
         self.app.push_screen(Saved())
 
     def action_logins(self):
+        self.app.push_screen(Logins())
+
+    def action_logins_typing(self):
         self.app.push_screen(Logins())
 
     def action_refresh(self):

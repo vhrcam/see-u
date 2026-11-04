@@ -4,7 +4,7 @@ A terminal app for browsing TikTok, Instagram, and Snapchat with your own accoun
 
 ## Sign in
 
-Press `l` for the logins menu. Pick a platform and a browser window opens on that platform's real sign-in page. Sign in the way you normally would, including 2FA, and the window closes by itself within about 30 seconds of you getting in. Nothing is attached to the browser while you sign in. see u reads the session afterward.
+Press `l` for the logins menu, or `ctrl+l` while the search box is active. Pick a platform and a browser window opens on that platform's real sign-in page. Sign in the way you normally would, including 2FA, and the window closes by itself within about 30 seconds of you getting in. Nothing is attached to the browser while you sign in. see u reads the session afterward.
 
 - A bright light means the account is connected. A dim blue light means it's signed out.
 - Signed-out accounts stay on the list, so getting back in is one press of enter.
@@ -72,7 +72,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 | Where | Keys |
 |---|---|
-| Home | `:` search, `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins, `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
+| Home | `:` search, `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out; `-` forget |
 | Posts | `/` filter, `v` save, `o` open link, `c` copy link |
 | Account | `+` save account, `-` unsave, `m` load every older post (again to pause), `r` refresh |
