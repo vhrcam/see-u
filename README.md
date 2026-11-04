@@ -8,7 +8,7 @@ Press `l` for the logins menu. Pick a platform and a browser window opens on tha
 
 - A bright light means the account is connected. A dim blue light means it's signed out.
 - Signed-out accounts stay on the list, so getting back in is one press of enter.
-- You can connect several accounts on a platform and pick which one is in use.
+- A platform that's already connected shows `- connected` and can't be clicked. To add another account on it, sign out first. You can then reconnect the first one from the list and press enter on either to switch.
 - `x` signs out and deletes that account's saved session. `-` also takes it off the list.
 
 Two commands clear things right away, with no confirmation. Type one in the home screen's search box, or run it from the terminal (`seeu /removeme`):

@@ -27,6 +27,43 @@ def lights():
     return t
 
 
+class LoginNav(Nav):
+    BINDINGS = [
+        Binding("enter", "connect", "connect"),
+        Binding("enter", "reconnect", "reconnect"),
+        Binding("enter", "use", "use this one"),
+    ]
+
+    def row_action(self):
+        if self.highlighted is None or self.screen.busy:
+            return None
+        oid = self.get_option_at_index(self.highlighted).id or ""
+        if oid.startswith("n"):
+            return "connect"
+        if not oid:
+            return None
+        l = self.screen.rows[int(oid[1:])]
+        if not sessions.is_on(l):
+            return "reconnect"
+        return None if sessions.current(l["platform"]) == l else "use"
+
+    def check_action(self, action, parameters):
+        if action == "select":
+            return False
+        if action in ("connect", "reconnect", "use"):
+            return action == self.row_action()
+        return super().check_action(action, parameters)
+
+    def action_connect(self):
+        self.action_select()
+
+    def action_reconnect(self):
+        self.action_select()
+
+    def action_use(self):
+        self.action_select()
+
+
 class Logins(Screen):
     BINDINGS = [
         Binding("escape", "back", "back"),
@@ -43,7 +80,7 @@ class Logins(Screen):
 
     def compose(self):
         yield Static(id="loginhead")
-        yield Nav(id="logins")
+        yield LoginNav(id="logins")
         yield Footer()
 
     def on_mount(self):
@@ -96,6 +133,12 @@ class Logins(Screen):
             t.append("signed out · enter to reconnect", style=DIM)
         return t
 
+    def connected_row(self, platform):
+        t = Text(no_wrap=True)
+        t.append(f"     {platform}", style=DIM)
+        t.append(" - connected", style=ACCENT)
+        return t
+
     def new_row(self, platform):
         busy = self.is_busy(platform, None)
         t = Text(no_wrap=True)
@@ -117,7 +160,9 @@ class Logins(Screen):
         if options:
             options.append(Option(Text(""), disabled=True))
         options.append(Option(Text("  connect an account", style=DIM), disabled=True))
-        options += [Option(self.new_row(p), id=f"n{p}") for p in sessions.PLATFORMS]
+        on = sessions.connected()
+        options += [Option(self.connected_row(p), disabled=True) if p in on else Option(self.new_row(p), id=f"n{p}")
+                    for p in sessions.PLATFORMS]
         box.clear_options()
         box.add_options(options)
         first = next(i for i, o in enumerate(options) if o.id)
@@ -158,8 +203,6 @@ class Logins(Screen):
             sessions.use(l)
             self.notify(f"using @{l['user']} on {l['platform']}", timeout=3)
             self.fill()
-        else:
-            self.notify(f"@{l['user']} is connected", timeout=2)
 
     def begin(self, platform, user):
         if not signin.browser():
