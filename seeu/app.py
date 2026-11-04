@@ -320,3 +320,5 @@ class SeeU(App):
         self.register_theme(THEME)
         self.theme = "see-u"
         self.push_screen(Home())
+        if not sessions.connected():
+            self.push_screen(Logins())
