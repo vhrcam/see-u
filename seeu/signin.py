@@ -31,6 +31,8 @@ WINDOWS_APPS = {"ChromeHTML": r"Google\Chrome\Application\chrome.exe",
 LINUX_APPS = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge"]
 IG_VIEWER = '"PolarisViewer",[],'
 WAIT = 900
+RECHECK_EVERY = 300
+_checked = {}
 
 
 class NoBrowser(Exception):
@@ -252,8 +254,10 @@ def sign_in(platform, profile, cancelled, check=None, url=None):
 def recheck():
     changed = False
     for l in sessions.logins():
-        if not sessions.is_on(l):
+        key = (l["platform"], l["user"])
+        if not sessions.is_on(l) or time.time() - _checked.get(key, 0) < RECHECK_EVERY:
             continue
+        _checked[key] = time.time()
         s = sessions.read(l)
         try:
             who = whoami(l["platform"], s["cookies"], s.get("agent"))
@@ -264,6 +268,7 @@ def recheck():
             changed = True
         elif who["user"].lower() != l["user"] and l["user"] == sessions.UNKNOWN:
             sessions.rename(l, who["user"], who.get("name"))
+            _checked[(l["platform"], who["user"].lower())] = time.time()
             changed = True
     return changed
 
