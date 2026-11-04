@@ -189,6 +189,10 @@ class Posts(Nav):
         return self.by_id.get(self.get_option_at_index(self.highlighted).id)
 
 
+def item_word(p):
+    return "snaps" if p["platform"] == "snapchat" else "items"
+
+
 def post_text(p, extra=None):
     extra = extra or {}
     t = Text()
@@ -220,7 +224,7 @@ def post_text(p, extra=None):
     if p.get("duration"):
         stats.append(f"{int(p['duration'])}s")
     if p.get("items"):
-        stats.append(f"{p['items']} snaps")
+        stats.append(f"{p['items']} {item_word(p)}")
     if stats:
         t.append("  ·  ".join(stats) + "\n", style=TEXT)
     elif p["platform"] == "instagram" and not p.get("saved_dir"):

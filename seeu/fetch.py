@@ -21,6 +21,7 @@ POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
 IG_PAUSE = 3
+STORY_KINDS = ("story",)
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
     ("instagram", re.compile(r"instagram\.com/(?!p/|reels?/|stories/|explore/)([A-Za-z0-9_.]+)", re.I)),
@@ -311,6 +312,34 @@ def _ig_private_posts(page_id, handle):
     return nodes, page.get("end_cursor") if page.get("has_next_page") else None
 
 
+def _ig_thumb(item):
+    options = (item.get("image_versions2") or {}).get("candidates") or []
+    return min(options, key=lambda o: o.get("width") or 0)["url"] if options else None
+
+
+def _ig_times(items):
+    times = [n["taken_at"] for n in items if n.get("taken_at")]
+    return (min(times), max(times)) if times else (None, None)
+
+
+def _ig_story(handle):
+    with _locks["instagram"]:
+        parts = _ig_page(f"stories/{handle}/")
+    info = next((d["xdt_api__v1__feed__reels_media"] for d in parts if d.get("xdt_api__v1__feed__reels_media")), {})
+    reel = next(iter(info.get("reels_media") or []), {})
+    items = reel.get("items") or []
+    media = [m for n in items for m in _ig_media(n)]
+    if not media or ((reel.get("user") or {}).get("username") or handle).lower() != handle:
+        return None
+    first, last = _ig_times(items)
+    ends = [n["expiring_at"] for n in items if n.get("expiring_at")]
+    return {"platform": "instagram", "handle": handle, "id": f"story-{reel.get('latest_reel_media') or last}",
+            "url": f"https://www.instagram.com/stories/{handle}/", "time": last, "first": first, "approx": False,
+            "text": "live story", "kind": "story", "thumb": _ig_thumb(items[-1]), "views": None, "likes": None,
+            "comments": None, "duration": None, "pinned": False, "media": media, "items": len(media),
+            "expires": max(ends) if ends else last + 86400}
+
+
 def _instagram(handle):
     with _locks["instagram"]:
         try:
@@ -356,6 +385,13 @@ def _instagram(handle):
             nodes = []
         prof["page_id"] = user["id"]
         posts = [_ig_post(n, handle) for n in nodes]
+    if user.get("latest_reel_media"):
+        try:
+            story = _ig_story(handle)
+        except (Unavailable, NotFound):
+            story = None
+        if story:
+            posts.append(story)
     return prof, posts
 
 
@@ -454,6 +490,7 @@ def _snapchat(handle):
 
 
 def _mark_pinned(posts):
+    posts = [p for p in posts if p["kind"] not in STORY_KINDS]
     times = [p["time"] or 0 for p in posts]
     if not times:
         return
@@ -501,11 +538,14 @@ def cached(platform, handle):
     prof = (c or {}).get("profile") or {}
     if prof.get("followers") is None and prof.get("subscribers") is not None:
         prof["followers"] = prof.pop("subscribers")
-    return _overlay(platform, handle, c) if c else c
+    if not c:
+        return c
+    c["posts"] = [p for p in c["posts"] if not p.get("expires") or p["expires"] > time.time()]
+    return _overlay(platform, handle, c)
 
 
 def _order(posts):
-    return sorted(posts, key=lambda p: (not p.get("pinned"), -(p["time"] or 0)))
+    return sorted(posts, key=lambda p: (p["kind"] != "story", not p.get("pinned"), -(p["time"] or 0)))
 
 
 _missing = {}
@@ -530,7 +570,8 @@ def account(platform, handle, fresh=False):
     old = cached(platform, prof["handle"])
     if old and platform != "snapchat":
         ids = {p["id"] for p in posts}
-        c["posts"] = _order(posts + [dict(p, pinned=False) for p in old["posts"] if p["id"] not in ids])
+        c["posts"] = _order(posts + [dict(p, pinned=False) for p in old["posts"]
+                                     if p["id"] not in ids and p["kind"] not in STORY_KINDS])
         c["end"], c["cursor"] = old.get("end", False), old.get("cursor")
     store.save(cache_name(platform, prof["handle"]), c)
     return _overlay(platform, prof["handle"], c)
@@ -612,6 +653,8 @@ def older(platform, handle, step, stop):
 
 def details(post):
     need(post["platform"])
+    if post["kind"] == "story":
+        return {}
     if post["platform"] == "tiktok":
         out = _tiktok_details(post)
     elif post["platform"] == "instagram":
@@ -619,10 +662,9 @@ def details(post):
     else:
         return {}
     changes = {"approx": False}
-    if out.get("time"):
-        changes["time"] = out["time"]
-    if out.get("kind"):
-        changes["kind"] = out["kind"]
+    for k in ("time", "kind"):
+        if out.get(k):
+            changes[k] = out[k]
     if any(post.get(k) != v for k, v in changes.items()):
         fix(post, **changes)
     return out

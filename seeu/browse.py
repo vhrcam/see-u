@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.widgets import Input
 
 from . import fetch, media
-from .widgets import KIND, FilterBar, Posts, Preview
+from .widgets import KIND, FilterBar, Posts, Preview, item_word
 
 
 class Browser(Screen):
@@ -105,7 +105,7 @@ class Browser(Screen):
             return
         self.opening.add(p["id"])
         many = (p.get("items") or 0) > media.VIEW_LIMIT
-        note = f"opening the first {media.VIEW_LIMIT} of {p['items']} snaps…" if many else f"opening the {KIND.get(p['kind'], 'post')}…"
+        note = f"opening the first {media.VIEW_LIMIT} of {p['items']} {item_word(p)}…" if many else f"opening the {KIND.get(p['kind'], 'post')}…"
         self.app.call_from_thread(self.notify, note, timeout=3)
         try:
             self.view(p)

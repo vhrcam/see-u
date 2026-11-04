@@ -112,7 +112,7 @@ class Account(Browser):
         elif not self.data["posts"]:
             footer = None if self.data["profile"].get("private") else "nothing to see here"
         elif self.loading_more:
-            footer = f"loading every post… {len(self.data['posts']):,} so far, back to {self.oldest()} · m to pause"
+            footer = f"loading every post… {self.post_count():,} so far, back to {self.oldest()} · m to pause"
         elif self.more_note:
             footer = f"{self.more_note} · m to try again"
         elif self.data.get("end") and self.platform == "snapchat":
@@ -121,7 +121,7 @@ class Account(Browser):
             footer = f"that's every post, back to {self.oldest()}"
         elif self.data.get("short") and not self.paused:
             total = self.data["profile"].get("posts") or 0
-            footer = f"{self.platform} only sent {len(self.data['posts']):,} of {total:,} posts · m to try again"
+            footer = f"{self.platform} only sent {self.post_count():,} of {total:,} posts · m to try again"
         elif self.paused:
             footer = f"paused back at {self.oldest()} · m to keep going"
         else:
@@ -138,11 +138,15 @@ class Account(Browser):
         added = store.is_added(self.platform, self.handle)
         prof = dict(self.data["profile"])
         if prof.get("posts") is None and self.data.get("end") and self.platform == "instagram":
-            prof["posts"] = len(self.data["posts"])
+            prof["posts"] = self.post_count()
         self.query_one("#profile", Static).update(profile_text(prof, self.platform, added))
 
+    def post_count(self):
+        return sum(p["kind"] not in fetch.STORY_KINDS for p in self.data["posts"])
+
     def oldest(self):
-        times = [p["time"] for p in self.data["posts"] if p["time"] and not p.get("pinned")]
+        times = [p["time"] for p in self.data["posts"]
+                 if p["time"] and not p.get("pinned") and p["kind"] not in fetch.STORY_KINDS]
         return long_date(min(times)).split(" · ")[0] if times else "the start"
 
     def action_more(self):
