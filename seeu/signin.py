@@ -221,7 +221,7 @@ def _read_session(platform, profile, check, fresh=False):
             time.sleep(3)
     if who:
         return who, cookies, agent
-    return ({"user": "account", "name": None}, cookies, agent) if fresh else None
+    return ({"user": sessions.UNKNOWN, "name": None}, cookies, agent) if fresh else None
 
 
 def sign_in(platform, profile, cancelled, check=None, url=None):
@@ -261,6 +261,9 @@ def recheck():
             continue
         if who is None:
             sessions.expire(l)
+            changed = True
+        elif who["user"].lower() != l["user"] and l["user"] == sessions.UNKNOWN:
+            sessions.rename(l, who["user"], who.get("name"))
             changed = True
     return changed
 

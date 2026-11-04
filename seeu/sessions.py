@@ -5,6 +5,7 @@ import shutil
 from . import store
 
 PLATFORMS = ["tiktok", "instagram", "snapchat"]
+UNKNOWN = "account"
 
 
 class SignedOut(Exception):
@@ -86,6 +87,22 @@ def add(platform, user, name, cookies, agent):
         fd = os.open(f, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w") as out:
             json.dump({"cookies": cookies, "agent": agent}, out)
+        _write(rows)
+
+
+def rename(login, user, name):
+    platform, old = login["platform"], login["user"]
+    user = user.lower()
+    with store._lock:
+        rows = [l for l in logins() if not (l["platform"] == platform and l["user"] == user)]
+        for l in rows:
+            if l["platform"] == platform and l["user"] == old:
+                l["user"], l["name"] = user, name
+        session_file(platform, old).replace(session_file(platform, user))
+        profile = browser_profile(platform, old)
+        if profile.exists():
+            shutil.rmtree(browser_profile(platform, user), ignore_errors=True)
+            profile.replace(browser_profile(platform, user))
         _write(rows)
 
 
