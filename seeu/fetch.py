@@ -104,7 +104,7 @@ def ydl(**opts):
     for c in s["cookies"]:
         y.cookiejar.set_cookie(http.cookiejar.Cookie(
             0, c["name"], c["value"], None, False, c["domain"], True, c["domain"].startswith("."),
-            c.get("path") or "/", True, bool(c.get("secure")), int(c.get("expires") or 0) or None, False, None, None, {}))
+            c.get("path") or "/", True, bool(c.get("secure")), max(int(c.get("expires") or 0), 0) or None, False, None, None, {}))
     return y
 
 
