@@ -73,6 +73,6 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 ## Keeping it working
 
-These sites change often. If something stops loading, run `see update` to update the two fetchers (yt-dlp and instaloader).
+These sites change often. If something stops loading, run `seeu update` to update the two fetchers (yt-dlp and instaloader).
 
 Built with Python, Textual, yt-dlp, instaloader, and Pillow.
