@@ -34,6 +34,10 @@ class TimedOut(Exception):
     pass
 
 
+class Unsure(Exception):
+    pass
+
+
 def browser():
     if sys.platform == "darwin":
         apps = ["Google Chrome", "Brave Browser", "Microsoft Edge", "Chromium", "Vivaldi"]
@@ -149,8 +153,9 @@ def sign_in(platform, profile, cancelled, check=None, url=None):
                 cookies = b.cookies(info["domain"])
                 try:
                     who = check(platform, cookies, agent)
-                except requests.RequestException:
+                except (requests.RequestException, Unsure):
                     who = None
+                    time.sleep(5)
                 else:
                     tried = token
                 if who:
@@ -200,22 +205,30 @@ def _instagram_me(cookies, agent):
     s.headers.update({"X-IG-App-ID": IG_APP, "X-CSRFToken": jar.get("csrftoken", ""),
                       "Referer": "https://www.instagram.com/"})
     r = s.get(f"https://www.instagram.com/api/v1/users/{uid}/info/", timeout=20, allow_redirects=False)
-    if r.status_code != 200:
+    if r.status_code in (401, 403) or r.is_redirect:
         return None
+    if r.status_code != 200:
+        raise Unsure()
     u = r.json().get("user") or {}
-    return {"user": u["username"], "name": u.get("full_name")} if u.get("username") else None
+    if not u.get("username"):
+        raise Unsure()
+    return {"user": u["username"], "name": u.get("full_name")}
 
 
 def _tiktok_me(cookies, agent):
     html = http(cookies, agent).get("https://www.tiktok.com/", timeout=20).text
     m = re.search(r'id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>', html, re.S)
     if not m:
-        return None
+        raise Unsure()
     u = json.loads(m.group(1)).get("__DEFAULT_SCOPE__", {}).get("webapp.app-context", {}).get("user") or {}
     return {"user": u["uniqueId"], "name": u.get("nickName")} if u.get("uniqueId") else None
 
 
 def _snapchat_me(cookies, agent):
-    html = http(cookies, agent).get("https://accounts.snapchat.com/accounts/v2/welcome", timeout=20).text
-    m = re.search(r'"(?:username|userName)"\s*:\s*"([A-Za-z0-9_.-]+)"', html)
-    return {"user": m.group(1), "name": None} if m else None
+    r = http(cookies, agent).get("https://accounts.snapchat.com/accounts/v2/welcome", timeout=20)
+    if "/login" in r.url:
+        return None
+    m = re.search(r'"(?:username|userName)"\s*:\s*"([A-Za-z0-9_.-]+)"', r.text)
+    if not m:
+        raise Unsure()
+    return {"user": m.group(1), "name": None}
