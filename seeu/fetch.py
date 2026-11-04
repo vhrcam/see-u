@@ -62,6 +62,8 @@ def _ig_session():
     global _ig_user
     login = sessions.current("instagram")
     jar = sessions.jar("instagram")
+    if "csrftoken" not in jar:
+        raise NeedsLogin("this instagram session is incomplete. reconnect it with l on the home screen")
     if (login["user"], jar.get("sessionid")) != _ig_user:
         _loader.context.user_agent = _agent("instagram")
         _loader.load_session(login["user"], jar)
