@@ -111,6 +111,8 @@ def account_line(a, new=0):
 
 
 class Home(Screen):
+    AUTO_FOCUS = None
+
     BINDINGS = [
         Binding("colon", "search", "search", show=False),
         Binding("tab", "platform", "platform", priority=True),
@@ -189,7 +191,12 @@ class Home(Screen):
         self.show_newest()
         self.query_one("#title", Static).update(title(len(self.rows), sum(counts), len(media.saved())))
         if focus:
-            (box if self.rows else self.query_one("#search", Input)).focus()
+            if self.rows:
+                box.focus()
+            elif sessions.connected():
+                self.query_one("#search", Input).focus()
+            else:
+                self.set_focus(None)
         self.refresh_bindings()
 
     @work(thread=True, exclusive=True, group="refresh")
@@ -332,5 +339,3 @@ class SeeU(App):
         self.register_theme(THEME)
         self.theme = "see-u"
         self.push_screen(Home())
-        if not sessions.connected():
-            self.push_screen(Logins())
