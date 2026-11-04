@@ -677,16 +677,14 @@ def older(platform, handle, step, stop):
 
 def details(post):
     need(post["platform"])
-    if post["kind"] == "story":
+    if post["kind"] == "story" or post["platform"] == "snapchat":
         return {}
     if post["platform"] == "tiktok":
         out = _tiktok_details(post)
     elif post["kind"] == "highlight":
         out = _ig_highlight(post)
-    elif post["platform"] == "instagram":
-        out = _instagram_details(post)
     else:
-        return {}
+        out = _instagram_details(post)
     changes = {"approx": False}
     for k in ("time", "kind", "first", "items"):
         if out.get(k):
