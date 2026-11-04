@@ -55,8 +55,6 @@ class Feed(Browser):
                 self.app.call_from_thread(self.update_head)
         if not first:
             self.app.call_from_thread(self.show, list(collected))
-        rough = sorted((p for p in collected if p.get("approx")), key=lambda p: -(p["time"] or 0))
-        self.app.call_from_thread(self.fill_exact, rough[:20])
 
     def update_head(self):
         self.query_one("#feedhead", Static).update(self.head())

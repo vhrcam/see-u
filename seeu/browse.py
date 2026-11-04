@@ -72,7 +72,7 @@ class Browser(Screen):
 
     @work(thread=True, exclusive=True, group="details")
     def load_details(self, p):
-        time.sleep(0.4)
+        time.sleep(0.8)
         if self.current is not p:
             return
         try:
@@ -87,22 +87,6 @@ class Browser(Screen):
         self.query_one(Posts).refresh_post(p)
         if self.current is p:
             self.query_one(Preview).show(p, self.extra.get(p["id"]))
-
-    @work(thread=True, exclusive=True, group="fill")
-    def fill_exact(self, posts):
-        for p in posts:
-            if self.leaving:
-                return
-            if p["platform"] != "instagram" or not p.get("approx") or p["id"] in self.extra:
-                continue
-            try:
-                self.extra[p["id"]] = fetch.details(p)
-            except fetch.Unavailable:
-                return
-            except Exception:
-                continue
-            self.app.call_from_thread(self.fixed, p)
-            time.sleep(1)
 
     def on_option_list_option_selected(self, event):
         self.action_open()

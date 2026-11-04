@@ -100,8 +100,6 @@ class Account(Browser):
         self.redraw()
         self.query_one(Posts).focus()
         self.refresh_bindings()
-        if self.platform == "instagram":
-            self.fill_exact(data["posts"][:12])
 
     def redraw(self):
         if not self.data:
