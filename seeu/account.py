@@ -33,8 +33,6 @@ def profile_text(prof, platform, added=False):
                 t.append("  ·  ", style=SOFT)
             t.append(l.replace("https://", "").replace("http://", ""), style=link(l, DIM))
         t.append("\n")
-    if prof.get("highlights"):
-        t.append("highlights  " + "  ·  ".join(prof["highlights"][:8]) + "\n", style=SOFT)
     if prof.get("private"):
         t.append("private account. its posts show once the account you connected follows it\n", style=ACCENT)
     return t

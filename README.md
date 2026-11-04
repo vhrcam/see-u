@@ -25,7 +25,7 @@ Connect a platform before browsing it. You can only see what that account is all
 ## What it does
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
-- **Instagram stories.** An account's live story sits at the top of its posts. Enter plays it in the player, and `a`/`d` move between items.
+- **Instagram stories and highlights.** An account's live story sits at the top of its posts, with its highlights right below. Enter plays them in the player, and `a`/`d` move between items.
 - **Closest matches.** Each platform gets its own list: the exact handle if it exists, then up to 10 of the closest real accounts.
 - **Account screen.** Bio, exact follower and post counts, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
 - **Saved accounts.** Press `+` on an account to save it (and `-` to unsave). Saved accounts show on the home screen with their new-post counts, and the right side shows the newest posts from whichever one is highlighted.

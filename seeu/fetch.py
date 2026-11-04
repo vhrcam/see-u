@@ -21,7 +21,7 @@ POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
 IG_PAUSE = 3
-STORY_KINDS = ("story",)
+STORY_KINDS = ("story", "highlight")
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
     ("instagram", re.compile(r"instagram\.com/(?!p/|reels?/|stories/|explore/)([A-Za-z0-9_.]+)", re.I)),
@@ -340,6 +340,15 @@ def _ig_story(handle):
             "expires": max(ends) if ends else last + 86400}
 
 
+def _ig_highlight_post(node, handle):
+    hid = str(node["id"]).removeprefix("highlight:")
+    return {"platform": "instagram", "handle": handle, "id": f"hl-{hid}",
+            "url": f"https://www.instagram.com/stories/highlights/{hid}/", "time": None, "first": None, "approx": False,
+            "text": node.get("title") or "highlight", "kind": "highlight",
+            "thumb": node.get("cover_media_cropped_thumbnail_url"), "views": None, "likes": None, "comments": None,
+            "duration": None, "pinned": False, "items": None}
+
+
 def _instagram(handle):
     with _locks["instagram"]:
         try:
@@ -356,10 +365,6 @@ def _instagram(handle):
         raise NotFound(handle)
     handle = (user.get("username") or handle).lower()
     links = [b.get("url") for b in user.get("bio_links") or [] if b.get("url")]
-    try:
-        highlights = [e["node"].get("title") for e in user["lox_highlights_connection"]["edges"]]
-    except (KeyError, TypeError):
-        highlights = []
     conn = (timeline or {}).get("polaris_ordered_timeline_connection") or {}
     info = conn.get("page_info") or {}
     prof = {
@@ -373,7 +378,6 @@ def _instagram(handle):
         "verified": bool(user.get("is_verified")),
         "private": bool(user.get("is_private")),
         "links": links,
-        "highlights": [h for h in highlights if h],
         "page_id": (timeline or {}).get("id"),
         "cursor": info.get("end_cursor") if info.get("has_next_page") else None,
     }
@@ -385,6 +389,8 @@ def _instagram(handle):
             nodes = []
         prof["page_id"] = user["id"]
         posts = [_ig_post(n, handle) for n in nodes]
+    edges = (user.get("lox_highlights_connection") or {}).get("edges") or []
+    posts += [_ig_highlight_post(e["node"], handle) for e in edges if e["node"].get("id")]
     if user.get("latest_reel_media"):
         try:
             story = _ig_story(handle)
@@ -545,7 +551,8 @@ def cached(platform, handle):
 
 
 def _order(posts):
-    return sorted(posts, key=lambda p: (p["kind"] != "story", not p.get("pinned"), -(p["time"] or 0)))
+    top = {"story": 0, "highlight": 1}
+    return sorted(posts, key=lambda p: (top.get(p["kind"], 2), not p.get("pinned"), -(p["time"] or 0)))
 
 
 _missing = {}
@@ -657,12 +664,14 @@ def details(post):
         return {}
     if post["platform"] == "tiktok":
         out = _tiktok_details(post)
+    elif post["kind"] == "highlight":
+        out = _ig_highlight(post)
     elif post["platform"] == "instagram":
         out = _instagram_details(post)
     else:
         return {}
     changes = {"approx": False}
-    for k in ("time", "kind"):
+    for k in ("time", "kind", "first", "items"):
         if out.get(k):
             changes[k] = out[k]
     if any(post.get(k) != v for k, v in changes.items()):
@@ -708,6 +717,28 @@ def _ig_media(item):
         elif (part.get("image_versions2") or {}).get("candidates"):
             media.append(["photo", _ig_best(part["image_versions2"]["candidates"])])
     return media
+
+
+def _ig_highlight(post):
+    name = f"cache/details/instagram_{post['id']}.json"
+    c = store.load(name)
+    if c and time.time() - c.get("at", 0) < 6 * 3600:
+        return c
+    hid = post["id"].removeprefix("hl-")
+    with _locks["instagram"]:
+        parts = _ig_page(f"stories/highlights/{hid}/")
+    conn = next((d["xdt_api__v1__feed__reels_media__connection"] for d in parts
+                 if d.get("xdt_api__v1__feed__reels_media__connection")), {})
+    nodes = [e["node"] for e in conn.get("edges") or []]
+    node = next((n for n in nodes if str(n.get("id")).endswith(hid)), nodes[0] if nodes else {})
+    items = node.get("items") or []
+    media = [m for n in items for m in _ig_media(n)]
+    if not media:
+        raise Unavailable("instagram wouldn't load that highlight right now")
+    first, last = _ig_times(items)
+    out = {"media": media, "time": last, "first": first, "items": len(media), "at": time.time()}
+    store.save(name, out)
+    return out
 
 
 def _instagram_details(post):
