@@ -27,7 +27,7 @@ Connect a platform before browsing it. You can only see what that account is all
 ## What it does
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
-- **Search by place.** Type a place after the handle, like `nasa houston`. see u checks the results' posts for that place in captions, hashtags, and highlight titles, plus the place tag on the newest 12 posts of the account you searched for, then shows only the accounts with posts from there. Opening one shows just those posts, and esc shows them all. If none match, you get the usual results.
+- **Search by place.** Type a place after the handle, like `nasa houston`. see u checks the results' posts for that place in captions, hashtags, highlight titles, and the place tag at the top of the post, then shows only the accounts with posts from there. TikTok sends place tags with every account's posts. Instagram only sends them one post at a time, so there see u reads the tags on the newest 12 posts of the account you searched for. Opening a result shows just those posts, and esc shows them all. If none match, you get the usual results.
 - **Stories.** A live TikTok or Instagram story sits at the top of the account's posts. Enter plays it in the player, and `a`/`d` move between items. Instagram highlights sit right below and work the same way.
 - **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more, and Enter on a comment shows its replies.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.

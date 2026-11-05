@@ -110,6 +110,25 @@ def parse(text):
     return None, words[0].lstrip("@").lower() if words else ""
 
 
+def _with_place(parse):
+    # tiktok's post list carries each post's place tag, which yt-dlp leaves out, so keep it as "location"
+    def parse_with_place(self, aweme, *args, **kwargs):
+        info = parse(self, aweme, *args, **kwargs)
+        poi = aweme.get("poi") if isinstance(aweme, dict) else None
+        if isinstance(info, dict):
+            poi = poi if isinstance(poi, dict) else {}
+            info["location"] = info.get("location") or _place_label(poi.get("name"), poi.get("address") or poi.get("city")) or ""
+        return info
+    return parse_with_place
+
+
+try:
+    from yt_dlp.extractor.tiktok import TikTokBaseIE
+    TikTokBaseIE._parse_aweme_video_web = _with_place(TikTokBaseIE._parse_aweme_video_web)
+except (ImportError, AttributeError):
+    pass
+
+
 def ydl(**opts):
     y = yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "noprogress": True, "geo_bypass": False, **opts})
     s = sessions.session("tiktok")
@@ -233,7 +252,7 @@ def _tt_post(e, handle):
     thumbs = e.get("thumbnails") or []
     cover = next((t["url"] for t in thumbs if t.get("id") == "cover"), thumbs[0]["url"] if thumbs else None)
     vid = str(e["id"])
-    return {
+    post = {
         "platform": "tiktok",
         "handle": handle,
         "id": vid,
@@ -248,6 +267,9 @@ def _tt_post(e, handle):
         "duration": e.get("duration"),
         "pinned": False,
     }
+    if "location" in e:
+        post["place"] = e["location"] or None
+    return post
 
 
 def _tiktok(handle, start=1, sec_uid=None):
