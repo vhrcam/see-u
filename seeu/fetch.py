@@ -899,6 +899,7 @@ def _tiktok_details(post):
     if any(urls):
         out["kind"] = "photos"
         out["media"] = [["photo", u] for u in urls if u]
+        out["items"] = len(out["media"])
     store.save(name, out)
     return out
 
