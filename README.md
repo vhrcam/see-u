@@ -49,15 +49,10 @@ Connect a platform before browsing it. You can only see what that account is all
 Mac or Linux:
 
 ```
-git clone https://github.com/vhrcam/see-u.git
-cd see-u
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-mkdir -p ~/.local/bin
-ln -s "$PWD/see" ~/.local/bin/seeu
+git clone https://github.com/vhrcam/see-u.git && cd see-u && ./install.sh
 ```
 
-Then type `seeu` from anywhere. For the media player, install mpv: `brew install mpv` on a Mac, or `sudo apt install mpv` on Ubuntu/Debian.
+It needs Python 3.10 or newer. The script sets up see u's own Python environment and adds the `seeu` command to `~/.local/bin`. If that folder isn't on your PATH yet, it prints the line that fixes it. Then type `seeu` from anywhere. For the media player, install mpv: `brew install mpv` on a Mac, or `sudo apt install mpv` on Ubuntu/Debian.
 
 Windows (in PowerShell, from the see-u folder):
 
