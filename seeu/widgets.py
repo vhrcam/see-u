@@ -231,6 +231,9 @@ def post_text(p, extra=None):
         t.append("loading…\n", style=SOFT)
     elif p["platform"] == "instagram" and not p.get("saved_dir"):
         t.append("loading likes…\n", style=SOFT)
+    song = extra.get("song") or p.get("song")
+    if song:
+        t.append(f"♪ {song}\n", style=ACCENT)
     if p.get("saved_dir"):
         t.append(f"saved in {p['folder']}\n", style=SOFT)
     t.append("\n")

@@ -131,7 +131,7 @@ def save(post, folder, extra=None):
     if thumb:
         shutil.copy(thumb, dest / "thumb.jpg")
     meta = dict(post)
-    meta.update({k: v for k, v in extra.items() if k in ("likes", "comments", "time") and v is not None})
+    meta.update({k: v for k, v in extra.items() if k in ("likes", "comments", "views", "time", "song") and v is not None})
     meta.update({"saved_at": time.time(), "files": [Path(f).name for f in files]})
     (dest / "post.json").write_text(json.dumps(meta, ensure_ascii=False))
     return dest

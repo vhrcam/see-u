@@ -32,7 +32,7 @@ Connect a platform before browsing it. You can only see what that account is all
 - **Account screen.** Bio, exact follower counts, post counts where the platform shares them, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
 - **Saved accounts.** Press `+` on an account to save it (and `-` to unsave). Saved accounts show on the home screen with their new-post counts, and the right side shows the newest posts from whichever one is highlighted.
 - **Feed.** Every saved account in one stream, newest first. New posts sit on top, then a "you're caught up" line.
-- **Preview pane** with a cyan thumbnail, the date, views, likes, comments, and the full caption.
+- **Preview pane** with a cyan thumbnail, the date, views, likes, comments, the song or sound, and the full caption.
 - **Open the real thing.** Enter opens the photo, album, video, or story in an mpv window: full color, with sound. Nothing moves on by itself. In a story, highlight, or album, `a`/`d` (or a click) go to the previous or next item. In a single video, `a`/`d` skip 3 seconds. Space pauses, and `q` or esc closes. Without mpv, see u falls back to your computer's normal photo and video apps.
 - **Filter** with `/` by caption, handle, or post type.
 - **Save** with `v`. The post and its media go into a folder you pick, and the saved screen works offline.
