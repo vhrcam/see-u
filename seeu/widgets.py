@@ -234,6 +234,9 @@ def post_text(p, extra=None):
     song = extra.get("song") or p.get("song")
     if song:
         t.append(f"♪ {song}\n", style=ACCENT)
+    place = extra.get("place") or p.get("place")
+    if place:
+        t.append(f"📍 {place}\n", style=ACCENT)
     if p.get("saved_dir"):
         t.append(f"saved in {p['folder']}\n", style=SOFT)
     t.append("\n")

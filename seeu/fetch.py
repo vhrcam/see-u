@@ -870,15 +870,21 @@ def details(post):
     for k in ("time", "kind", "first", "items"):
         if out.get(k):
             changes[k] = out[k]
-    if any(post.get(k) != v for k, v in changes.items()):
+    if "place" in out:
+        changes["place"] = out["place"]
+    if any(k not in post or post[k] != v for k, v in changes.items()):
         fix(post, **changes)
     return out
+
+
+def _place_label(name, where):
+    return " · ".join(x for x in (name, where) if x) or None
 
 
 def _tiktok_details(post):
     name = f"cache/details/tiktok_{post['id']}.json"
     c = store.load(name)
-    if c and "song" in c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and "place" in c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     try:
         with ydl() as y:
@@ -892,9 +898,11 @@ def _tiktok_details(post):
         return {}
     s = item.get("statsV2") or item.get("stats") or {}
     music = item.get("music") or {}
+    poi = item.get("poi") or {}
     out = {"time": _num(item.get("createTime")), "views": _num(s.get("playCount")), "likes": _num(s.get("diggCount")),
            "comments": _num(s.get("commentCount")), "at": time.time(),
-           "song": " · ".join(x for x in (music.get("title"), music.get("authorName")) if x) or None}
+           "song": " · ".join(x for x in (music.get("title"), music.get("authorName")) if x) or None,
+           "place": _place_label(poi.get("name"), poi.get("address") or poi.get("city"))}
     urls = [((i.get("imageURL") or {}).get("urlList") or [None])[0] for i in (item.get("imagePost") or {}).get("images") or []]
     if any(urls):
         out["kind"] = "photos"
@@ -978,13 +986,15 @@ def _ig_item(post):
 def _instagram_details(post):
     name = f"cache/details/instagram_{post['id']}.json"
     c = store.load(name)
-    if c and "song" in c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and "place" in c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     with _locks["instagram"]:
         n = _ig_item(post)
+    loc = n.get("location") or {}
     out = {"likes": n.get("like_count"), "comments": n.get("comment_count"),
            "views": n.get("play_count") or n.get("ig_play_count") or n.get("view_count"), "media": _ig_media(n),
-           "time": n.get("taken_at"), "pk": str(n.get("pk")), "song": _ig_song(n), "at": time.time()}
+           "time": n.get("taken_at"), "pk": str(n.get("pk")), "song": _ig_song(n), "at": time.time(),
+           "place": _place_label(loc.get("name"), loc.get("address") or loc.get("city"))}
     store.save(name, out)
     return out
 
