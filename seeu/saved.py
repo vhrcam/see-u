@@ -9,7 +9,7 @@ from textual.widgets.option_list import Option
 
 from . import media
 from .browse import Browser
-from .widgets import ACCENT, DIM, SOFT, WHITE, FilterBar, Nav, Posts, Preview
+from .widgets import ACCENT, DIM, SOFT, TOP, FilterBar, Nav, Posts, Preview
 
 
 class FolderPick(ModalScreen):
@@ -17,7 +17,7 @@ class FolderPick(ModalScreen):
 
     def compose(self):
         with Vertical(id="folderbox"):
-            yield Static(Text("save to a folder", style="bold " + WHITE))
+            yield Static(Text("save to a folder", style="bold " + TOP))
             yield Input(placeholder="new folder name, or enter for 'saved'", id="folder")
             yield Nav(*[Option(Text(f"  {f}", style=ACCENT), id=f) for f in media.folders()], id="folders")
             yield Static(Text("enter saves · ↓ picks an existing folder · esc cancels", style=SOFT))
@@ -71,7 +71,7 @@ class Saved(Browser):
 
     def head(self, shown):
         t = Text()
-        t.append("saved posts", style="bold " + WHITE)
+        t.append("saved posts", style="bold " + TOP)
         groups = {}
         for p in self.items:
             groups[p["folder"]] = groups.get(p["folder"], 0) + 1

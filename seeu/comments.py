@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static
 
 from . import fetch
-from .widgets import ACCENT, DIM, SOFT, WHITE, ago, exact, first_line
+from .widgets import ACCENT, DIM, SOFT, TEXT, TOP, ago, exact, first_line
 
 
 class CommentList(VerticalScroll):
@@ -27,7 +27,7 @@ def comment_text(c):
     if c.get("replies"):
         meta.append(f"{exact(c['replies'])} replies")
     t.append("   " + " · ".join(m for m in meta if m) + "\n", style=DIM)
-    t.append((c.get("text") or "").strip() + "\n\n", style=WHITE)
+    t.append((c.get("text") or "").strip() + "\n\n", style=TOP)
     return t
 
 
@@ -79,7 +79,7 @@ class Comments(Screen):
     def show(self):
         p = self.post
         head = Text()
-        head.append("comments", style="bold " + WHITE)
+        head.append("comments", style="bold " + TOP)
         head.append(f"   @{p['handle']} · {p['platform']}", style=DIM)
         if self.total is not None:
             head.append(f" · {exact(self.total)} in all", style=DIM)

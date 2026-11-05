@@ -8,12 +8,12 @@ from textual.widgets import Footer, Static
 
 from . import fetch, store
 from .browse import Browser
-from .widgets import ACCENT, BRIGHT, DIM, SOFT, TEXT, WHITE, FilterBar, Posts, Preview, exact, link, long_date
+from .widgets import ACCENT, DIM, SOFT, TEXT, TOP, FilterBar, Posts, Preview, exact, link, long_date
 
 
 def profile_text(prof, platform, added=False):
     t = Text()
-    t.append(prof.get("name") or prof["handle"], style="bold " + WHITE)
+    t.append(prof.get("name") or prof["handle"], style="bold " + TOP)
     if prof.get("verified"):
         t.append(" ✓", style=ACCENT)
     t.append(f"   @{prof['handle']} · {platform}", style=DIM)
@@ -25,7 +25,7 @@ def profile_text(prof, platform, added=False):
     if stats:
         t.append("  ·  ".join(stats) + "\n", style=TEXT)
     if prof.get("bio"):
-        t.append(prof["bio"].strip() + "\n", style=BRIGHT)
+        t.append(prof["bio"].strip() + "\n", style=TEXT)
     if prof.get("links"):
         t.append("links  ", style=SOFT)
         for i, l in enumerate(prof["links"][:4]):

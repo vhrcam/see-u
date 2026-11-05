@@ -8,9 +8,9 @@ from textual.widgets import Footer, OptionList, Static
 from textual.widgets.option_list import Option
 
 from . import sessions, signin
-from .widgets import ACCENT, DIM, SOFT, WHITE, Nav
+from .widgets import ACCENT, DIM, SOFT, TOP, Nav
 
-LIGHT_ON = "#7df9ff"
+LIGHT_ON = "#5fffff"
 LIGHT_OFF = "#1d4e89"
 
 
@@ -106,7 +106,7 @@ class Logins(Screen):
 
     def head(self):
         t = Text()
-        t.append("logins\n", style="bold " + WHITE)
+        t.append("logins\n", style="bold " + TOP)
         if self.busy:
             t.append(f"finish signing in to {self.busy[0]} in the {signin.browser_name()} window. ", style=ACCENT)
             t.append("it closes by itself within about 30 seconds of you getting in. esc cancels", style=DIM)
@@ -120,7 +120,7 @@ class Logins(Screen):
         t = Text(no_wrap=True, overflow="ellipsis")
         t.append("  ")
         t.append_text(light(self.pulse if busy else on))
-        t.append(f"  @{l['user'][:24]:<26}", style=WHITE if on else DIM)
+        t.append(f"  @{l['user'][:24]:<26}", style=TOP if on else DIM)
         t.append(f"{l['platform']:<12}", style=ACCENT if on else DIM)
         if busy:
             t.append("waiting for you to sign in…", style=ACCENT)
@@ -146,7 +146,7 @@ class Logins(Screen):
             t.append_text(light(self.pulse))
         else:
             t.append("+", style=ACCENT)
-        t.append(f"  {platform}", style=WHITE)
+        t.append(f"  {platform}", style=TOP)
         if busy:
             t.append("   waiting for you to sign in…", style=ACCENT)
         return t

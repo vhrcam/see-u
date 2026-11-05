@@ -19,42 +19,47 @@ from .feed import Feed
 from .logins import Logins, lights
 from .saved import Saved
 from .search import PLATFORMS, Results
-from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, WHITE, Nav, short_ago, short_date, web_url
+from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, TOP, Nav, short_ago, short_date, web_url
 
 THEME = Theme(
     name="see-u",
-    primary="#22d3ee",
-    secondary="#0891b2",
-    accent="#67e8f9",
-    foreground="#67e8f9",
+    primary="#00d7ff",
+    secondary="#00afd7",
+    accent="#5fd7ff",
+    foreground="#5fd7ff",
     background="#000000",
     surface="#000000",
     panel="#06222a",
     boost="#083344",
-    warning="#a5f3fc",
-    error="#a5f3fc",
-    success="#22d3ee",
+    warning="#5fffff",
+    error="#5fffff",
+    success="#00d7ff",
     dark=True,
     variables={
         "footer-background": "#000000",
-        "footer-key-foreground": "#22d3ee",
-        "footer-description-foreground": "#0e7490",
+        "footer-key-foreground": "#00d7ff",
+        "footer-description-foreground": "#00afd7",
         "block-cursor-background": "#083344",
-        "block-cursor-foreground": "#cffafe",
+        "block-cursor-foreground": "#5fffff",
         "block-cursor-text-style": "none",
         "block-cursor-blurred-background": "#083344",
-        "block-cursor-blurred-foreground": "#cffafe",
+        "block-cursor-blurred-foreground": "#5fffff",
         "block-cursor-blurred-text-style": "none",
         "block-hover-background": "#04161b",
-        "input-cursor-background": "#22d3ee",
-        "input-selection-background": "#0e7490",
-        "scrollbar": "#0e7490",
-        "scrollbar-hover": "#22d3ee",
-        "scrollbar-active": "#67e8f9",
+        "link-color": "#5fd7ff",
+        "link-color-hover": "#5fffff",
+        "link-background-hover": "#083344",
+        "link-style": "underline",
+        "link-style-hover": "underline",
+        "input-cursor-background": "#00d7ff",
+        "input-selection-background": "#00afd7",
+        "scrollbar": "#00afd7",
+        "scrollbar-hover": "#00d7ff",
+        "scrollbar-active": "#5fd7ff",
         "scrollbar-background": "#000000",
         "scrollbar-background-hover": "#000000",
         "scrollbar-background-active": "#000000",
-        "border": "#0e7490",
+        "border": "#00afd7",
         "border-blurred": "#083344",
     },
 )
@@ -63,17 +68,17 @@ THEME = Theme(
 def title(accounts=0, new=0, saved=0):
     t = Text()
     t.append("\n")
-    t.append("      s  e  e\n", style="bold #a5f3fc")
-    t.append("                  u\n", style="bold #22d3ee")
+    t.append("      s  e  e\n", style="bold #5fffff")
+    t.append("                  u\n", style="bold #00d7ff")
     t.append("\n")
     t.append("  ")
     t.append_text(lights())
     t.append("\n\n")
-    t.append(f"{accounts} accounts", style="#67e8f9")
-    t.append("  ·  ", style="#0e7490")
-    t.append(f"{new} new", style="bold #a5f3fc" if new else "#67e8f9")
-    t.append("  ·  ", style="#0e7490")
-    t.append(f"{saved} saved posts", style="#67e8f9")
+    t.append(f"{accounts} accounts", style="#5fd7ff")
+    t.append("  ·  ", style="#00afd7")
+    t.append(f"{new} new", style="bold #5fffff" if new else "#5fd7ff")
+    t.append("  ·  ", style="#00afd7")
+    t.append(f"{saved} saved posts", style="#5fd7ff")
     return t
 
 
@@ -87,7 +92,7 @@ def newest(a, limit=40):
         t.append("loading…" if not c else "no posts", style=SOFT)
     for p in posts[:limit]:
         new = p["id"] in fresh
-        t.append("● " if new else "  ", style="bold " + WHITE)
+        t.append("● " if new else "  ", style="bold " + TOP)
         t.append(f"{short_ago(p['time']):>4}   ", style=DIM)
         t.append(f"{KIND.get(p['kind'], p['kind']):<11}", style=ACCENT if new else TEXT)
         t.append(f"{short_date(p['time'])}\n", style=SOFT)
@@ -103,11 +108,11 @@ def account_line(a, new=0):
     c = fetch.cached(a["platform"], a["handle"]) or {}
     name = (c.get("profile") or {}).get("name") or a.get("name") or a["handle"]
     t = Text(no_wrap=True, overflow="ellipsis")
-    t.append(f"  {set_cell_size(name, 16)}  ", style=WHITE)
+    t.append(f"  {set_cell_size(name, 16)}  ", style=TOP)
     t.append(f"@{a['handle'][:16]:<18}", style=ACCENT)
     t.append(f"{TAG[a['platform']]:<4}", style=DIM)
     if new:
-        t.append(f"{new} new", style="bold " + WHITE)
+        t.append(f"{new} new", style="bold " + TOP)
     return t
 
 

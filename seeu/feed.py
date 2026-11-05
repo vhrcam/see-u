@@ -6,7 +6,7 @@ from textual.widgets import Footer, Static
 
 from . import fetch, store
 from .browse import Browser
-from .widgets import ACCENT, DIM, SOFT, WHITE, FilterBar, Posts, Preview
+from .widgets import ACCENT, DIM, SOFT, TOP, FilterBar, Posts, Preview
 
 
 class Feed(Browser):
@@ -61,10 +61,10 @@ class Feed(Browser):
 
     def head(self):
         t = Text()
-        t.append("feed", style="bold " + WHITE)
+        t.append("feed", style="bold " + TOP)
         t.append(f"   {self.total} accounts · {len(self.collected)} posts", style=DIM)
         fresh = sum(p["id"] in self.new for p in self.collected)
-        t.append(f" · {fresh} new", style="bold " + WHITE if fresh else DIM)
+        t.append(f" · {fresh} new", style="bold " + TOP if fresh else DIM)
         if self.words:
             t.append(f"   {len(self.posts)} match", style=ACCENT)
         if self.done < self.total:

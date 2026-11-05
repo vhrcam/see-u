@@ -10,12 +10,11 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-ACCENT = "#22d3ee"
-TEXT = "#67e8f9"
-BRIGHT = "#a5f3fc"
-WHITE = "#ecfeff"
-DIM = "#0e7490"
-SOFT = "#155e75"
+ACCENT = "#00d7ff"
+TEXT = "#5fd7ff"
+TOP = "#5fffff"
+DIM = "#00afd7"
+SOFT = "#0087af"
 KIND = {"video": "video", "reel": "reel", "photo": "photo", "carousel": "album", "story": "story",
         "highlight": "highlight", "spotlight": "spotlight", "photos": "photos"}
 TAG = {"tiktok": "tt", "instagram": "ig", "snapchat": "sc"}
@@ -100,7 +99,7 @@ def first_line(text, limit=140):
 
 def post_line(p, new=False, who=0):
     t = Text(no_wrap=True, overflow="ellipsis")
-    t.append("● " if new else "  ", style="bold " + WHITE)
+    t.append("● " if new else "  ", style="bold " + TOP)
     t.append(f"{short_date(p['time']) if p['time'] or p['kind'] != 'highlight' else '':<10}", style=DIM)
     if who:
         t.append(f"{TAG[p['platform']]} ", style=SOFT)
@@ -108,7 +107,7 @@ def post_line(p, new=False, who=0):
     t.append(f"{KIND.get(p['kind'], p['kind']):<10}", style=SOFT)
     if p.get("pinned"):
         t.append("pinned ", style=DIM)
-    t.append(first_line(p["text"]) or "(no caption)", style=WHITE if new else TEXT)
+    t.append(first_line(p["text"]) or "(no caption)", style=TOP if new else TEXT)
     return t
 
 
@@ -235,7 +234,7 @@ def post_text(p, extra=None):
     if p.get("saved_dir"):
         t.append(f"saved in {p['folder']}\n", style=SOFT)
     t.append("\n")
-    t.append((p["text"] or "(no caption)").strip() + "\n", style=WHITE)
+    t.append((p["text"] or "(no caption)").strip() + "\n", style=TOP)
     t.append("\n")
     t.append(p["url"].replace("https://www.", ""), style=link(p["url"], DIM))
     return t

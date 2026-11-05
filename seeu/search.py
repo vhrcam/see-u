@@ -13,7 +13,7 @@ from textual.widgets.option_list import Option
 
 from . import fetch, sessions, store
 from .account import Account
-from .widgets import ACCENT, DIM, SOFT, TEXT, WHITE, Nav, human
+from .widgets import ACCENT, DIM, SOFT, TEXT, TOP, Nav, human
 
 PLATFORMS = ["all", "tiktok", "instagram", "snapchat"]
 POPULAR = json.loads(Path(__file__).with_name("popular.json").read_text())
@@ -111,7 +111,7 @@ def typos(h):
 def match_line(handle, name=None, prof=None, added=False):
     t = Text(no_wrap=True)
     if prof:
-        t.append(f"  {(prof.get('name') or handle)[:26]}", style="bold " + WHITE)
+        t.append(f"  {(prof.get('name') or handle)[:26]}", style="bold " + TOP)
         if prof.get("verified"):
             t.append(" ✓", style=ACCENT)
         t.append(f"   @{handle}", style=ACCENT)
@@ -154,7 +154,7 @@ class Results(Screen):
         self.token += 1
         head = Text()
         head.append(f"searching {self.platform} for ", style=DIM)
-        head.append(f"@{self.q}", style="bold " + WHITE)
+        head.append(f"@{self.q}", style="bold " + TOP)
         self.query_one("#searching", Static).update(head)
         platforms = (sessions.connected() or PLATFORMS[1:]) if self.platform == "all" else [self.platform]
         self.state = {p: {"exact": None, "note": None, "found": [], "checking": True} for p in platforms}

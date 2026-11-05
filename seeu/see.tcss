@@ -1,6 +1,6 @@
 Screen {
     background: #000000;
-    color: #67e8f9;
+    color: #5fd7ff;
 }
 
 #banner {
@@ -74,7 +74,7 @@ Input {
     height: 1;
     padding: 0;
     background: #000000;
-    color: #ecfeff;
+    color: #5fffff;
 }
 
 Input:focus {
@@ -84,7 +84,7 @@ Input:focus {
 }
 
 Input > .input--placeholder {
-    color: #155e75;
+    color: #0087af;
 }
 
 OptionList {
@@ -101,7 +101,7 @@ OptionList:focus {
 }
 
 OptionList > .option-list--option-highlighted {
-    color: #cffafe;
+    color: #5fffff;
 }
 
 #feedhead, #savedhead {
@@ -119,7 +119,7 @@ FolderPick {
     height: auto;
     padding: 1 2;
     background: #000000;
-    border: round #0e7490;
+    border: round #00afd7;
 }
 
 #folderbox Input {
@@ -198,5 +198,5 @@ FolderPick {
 
 Toast {
     background: #06222a;
-    color: #a5f3fc;
+    color: #5fffff;
 }
