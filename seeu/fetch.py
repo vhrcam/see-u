@@ -437,6 +437,8 @@ def _ig_comments(post, cursor):
 
 def comments(post, cursor=None):
     need(post["platform"])
+    if post["platform"] == "snapchat":
+        return _snap_comments(post)
     return _tt_comments(post, cursor) if post["platform"] == "tiktok" else _ig_comments(post, cursor)
 
 
@@ -546,9 +548,9 @@ def _snap_time(snaps):
     return max((_num(_v(s.get("timestampInSec"))) or 0 for s in snaps), default=0) or None
 
 
-def _snap_post(handle, pid, kind, text, thumb, when, media, url, views=None, first=None):
+def _snap_post(handle, pid, kind, text, thumb, when, media, url, views=None, first=None, comments=None):
     return {"platform": "snapchat", "handle": handle, "id": pid, "url": url, "time": when, "text": text,
-            "kind": kind, "thumb": thumb, "views": views, "likes": None, "comments": None, "duration": None,
+            "kind": kind, "thumb": thumb, "views": views, "likes": None, "comments": comments, "duration": None,
             "pinned": False, "media": media, "items": len(media) if kind != "spotlight" else None, "first": first}
 
 
@@ -556,7 +558,7 @@ def _snap_first(snaps):
     return min((_num(_v(s.get("timestampInSec"))) or 0 for s in snaps), default=0) or None
 
 
-def _snapchat(handle):
+def _snap_page(handle):
     try:
         r = requests.get(f"https://www.snapchat.com/add/{handle}", timeout=20,
                          headers={**UA, "User-Agent": _agent("snapchat")}, cookies=sessions.jar("snapchat"))
@@ -567,7 +569,30 @@ def _snapchat(handle):
     m = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', r.text, re.S)
     if r.status_code != 200 or not m:
         raise Unavailable("snapchat wouldn't load that right now, try again in a bit")
-    page = json.loads(m.group(1)).get("props", {}).get("pageProps", {})
+    return json.loads(m.group(1)).get("props", {}).get("pageProps", {})
+
+
+def _snap_comment(c):
+    return {"name": c.get("replyPosterDisplayName") or "someone", "text": c.get("replyText") or "",
+            "time": (_num(c.get("replyTimestampMs")) or 0) // 1000 or None,
+            "likes": sum(_num(r.get("reactCount")) or 0 for r in c.get("reactCounts") or []),
+            "replies": _num(c.get("threadedReplyCount"))}
+
+
+def _snap_comments(post):
+    m = re.search(r"spotlight/([\w-]+)", post["url"])
+    if not m:
+        raise Unavailable("snapchat didn't share comments for this one")
+    page = _snap_page(post["handle"])
+    groups = json.loads(page.get("encodedSpotlightComments") or "[]")
+    rows = next((g for g in groups if g and g[0].get("snapId") == m.group(1)), [])
+    spot = next((s for s in page.get("spotlightStoryMetadata") or [] if m.group(1) in (s.get("deeplink") or "")), {})
+    return {"items": [_snap_comment(c) for c in rows], "cursor": None,
+            "total": _num((spot.get("engagementStats") or {}).get("commentCount"))}
+
+
+def _snapchat(handle):
+    page = _snap_page(handle)
     up = page.get("userProfile") or {}
     info = up.get(up.get("$case") or "") or {}
     if not info.get("username"):
@@ -614,7 +639,8 @@ def _snapchat(handle):
         when = (_num(vm.get("uploadDateMs")) or 0) // 1000 or None
         posts.append(_snap_post(handle, f"spot-{when or i}", "spotlight",
                                 vm.get("description") or vm.get("name") or "spotlight", vm.get("thumbnailUrl"), when,
-                                [["video", vm["contentUrl"]]], s.get("deeplink") or home, _num(vm.get("viewCount"))))
+                                [["video", vm["contentUrl"]]], s.get("deeplink") or home, _num(vm.get("viewCount")),
+                                comments=_num((s.get("engagementStats") or {}).get("commentCount"))))
     taken = set()
     for p in posts:
         while p["id"] in taken:

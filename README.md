@@ -26,7 +26,7 @@ Connect a platform before browsing it. You can only see what that account is all
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
 - **Stories.** A live TikTok or Instagram story sits at the top of the account's posts. Enter plays it in the player, and `a`/`d` move between items. Instagram highlights sit right below and work the same way.
-- **Comments.** `k` on a post opens its comments, with likes and reply counts. `m` loads more.
+- **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more on TikTok and Instagram. Snapchat's page only shares the first batch.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.
 - **Closest matches.** TikTok and Snapchat get their own list: the exact handle if it exists, then up to 10 of the closest real accounts.
 - **Account screen.** Bio, exact follower counts, post counts where the platform shares them, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.

@@ -18,7 +18,7 @@ class CommentList(VerticalScroll):
 
 def comment_text(c):
     t = Text()
-    t.append(f"@{c['user']}", style="bold " + ACCENT)
+    t.append(c.get("name") or f"@{c['user']}", style="bold " + ACCENT)
     if c.get("verified"):
         t.append(" ✓", style=ACCENT)
     meta = [ago(c.get("time"))]

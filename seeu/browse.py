@@ -34,8 +34,7 @@ class Browser(Screen):
             return posts.current() is not None
         if action == "comments":
             p = posts.current()
-            return bool(p and p["platform"] in ("tiktok", "instagram") and p["kind"] not in fetch.STORY_KINDS
-                        and not p.get("saved_dir"))
+            return bool(p and p["kind"] not in fetch.STORY_KINDS and not p.get("saved_dir"))
         if action == "filter":
             return posts.option_count > 0 or bool(self.words)
         return True
