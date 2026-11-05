@@ -153,7 +153,7 @@ class Home(Screen):
                 yield Static(id="newest")
         with Horizontal(id="searchbar"):
             yield Static(id="where")
-            yield Input(placeholder="handle/profile link", id="search", select_on_focus=False)
+            yield Input(placeholder="handle/profile link, then a place if you want", id="search", select_on_focus=False)
         yield Footer()
 
     def on_mount(self):
@@ -348,8 +348,9 @@ class Home(Screen):
         if platform and platform != self.platform:
             self.platform = platform
             self.show_platform()
+        place = " ".join(event.value.strip().lstrip("@:").split()[1:])
         event.input.value = ""
-        self.app.push_screen(Results(self.platform, handle))
+        self.app.push_screen(Results(self.platform, handle, place))
 
 
 class SeeU(App):

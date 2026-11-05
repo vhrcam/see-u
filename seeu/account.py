@@ -4,7 +4,7 @@ from rich.text import Text
 from textual import work
 from textual.binding import Binding
 from textual.containers import Horizontal
-from textual.widgets import Footer, Static
+from textual.widgets import Footer, Input, Static
 
 from . import fetch, store
 from .browse import Browser
@@ -47,10 +47,11 @@ class Account(Browser):
         Binding("r", "refresh", "refresh"),
     ]
 
-    def __init__(self, platform, handle):
+    def __init__(self, platform, handle, place=""):
         super().__init__()
         self.platform = platform
         self.handle = handle.lower()
+        self.wanted = place
         self.data = None
         self.new = set()
         self.loading_more = False
@@ -98,6 +99,18 @@ class Account(Browser):
         self.redraw()
         self.query_one(Posts).focus()
         self.refresh_bindings()
+        if self.wanted:
+            self.filter_place(self.wanted)
+            self.wanted = ""
+
+    def filter_place(self, place):
+        if not any(fetch.from_place(p, place) for p in self.data["posts"]):
+            self.notify(f"no posts from {place} here, so this is every post", timeout=4)
+            return
+        self.place = " ".join(place.lower().split())
+        bar = self.query_one(FilterBar)
+        bar.display = True
+        bar.query_one(Input).value = self.place
 
     def redraw(self):
         if not self.data:

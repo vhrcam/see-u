@@ -26,6 +26,7 @@ class Browser(Screen):
         self.current = None
         self.opening = set()
         self.words = []
+        self.place = ""
         self.leaving = False
 
     def check_action(self, action, parameters):
@@ -40,8 +41,8 @@ class Browser(Screen):
         return True
 
     def matches(self, p):
-        hay = f"{p.get('text') or ''} @{p['handle']} {p['platform']} {p['kind']} {p.get('folder', '')}".lower()
-        return all(w in hay for w in self.words)
+        hay = f"{p.get('text') or ''} {p.get('place') or ''} @{p['handle']} {p['platform']} {p['kind']} {p.get('folder', '')}"
+        return fetch.has_words(hay, self.words, whole=" ".join(self.words) == self.place)
 
     def redraw(self):
         pass
@@ -91,6 +92,8 @@ class Browser(Screen):
         if self.leaving:
             return
         self.query_one(Posts).refresh_post(p)
+        if self.words:
+            self.redraw()
         if self.current is p:
             self.query_one(Preview).show(p, self.extra.get(p["id"]))
 

@@ -108,7 +108,7 @@ def typos(h):
     return out
 
 
-def match_line(handle, name=None, prof=None, added=False):
+def match_line(handle, name=None, prof=None, added=False, note=None):
     t = Text(no_wrap=True)
     if prof:
         t.append(f"  {(prof.get('name') or handle)[:26]}", style="bold " + TOP)
@@ -125,6 +125,8 @@ def match_line(handle, name=None, prof=None, added=False):
         t.append((name or "")[:30], style=TEXT)
     if added:
         t.append("   saved", style=SOFT)
+    if note:
+        t.append(f"   {note}", style="bold " + TOP)
     return t
 
 
@@ -134,10 +136,11 @@ class Results(Screen):
         Binding("tab", "platform", "platform", priority=True),
     ]
 
-    def __init__(self, platform, query):
+    def __init__(self, platform, query, place=""):
         super().__init__()
         self.platform = platform
         self.q = query.lower()
+        self.place = " ".join(place.lower().split())
         self.token = 0
         self.state = {}
         self.targets = []
@@ -155,9 +158,13 @@ class Results(Screen):
         head = Text()
         head.append(f"searching {self.platform} for ", style=DIM)
         head.append(f"@{self.q}", style="bold " + TOP)
+        if self.place:
+            head.append("  ·  posts from ", style=DIM)
+            head.append(self.place, style="bold " + TOP)
         self.query_one("#searching", Static).update(head)
         platforms = (sessions.connected() or PLATFORMS[1:]) if self.platform == "all" else [self.platform]
-        self.state = {p: {"exact": None, "note": None, "found": [], "checking": True} for p in platforms}
+        self.state = {p: {"exact": None, "note": None, "found": [], "checking": True, "hits": {},
+                          "placing": bool(self.place), "tags": None} for p in platforms}
         self.show()
         for p in platforms:
             self.run_worker(lambda p=p, t=self.token: self.search(p, t), thread=True, group=f"search-{p}", exclusive=True)
@@ -176,6 +183,49 @@ class Results(Screen):
         return users
 
     def search(self, platform, token):
+        self.find(platform, token)
+        if token == self.token and self.place:
+            self.check_places(platform, token)
+
+    def check_places(self, platform, token):
+        st = self.state.get(platform)
+        if not st or st.get("off"):
+            self.app.call_from_thread(self.update, platform, token, placing=False)
+            return
+        exact = st["exact"]["handle"] if st["exact"] else None
+        handles = ([exact] if exact else []) + [h for h, _, _ in self.near(platform, st, exact or self.q)]
+        hits = {}
+
+        def count(h):
+            if token != self.token:
+                return h, None
+            try:
+                posts = fetch.account(platform, h)["posts"]
+            except Exception:
+                return h, None
+            if platform == "instagram":
+                time.sleep(1)
+            return h, sum(fetch.from_place(p, self.place) for p in posts)
+
+        with ThreadPoolExecutor(1 if platform == "instagram" else 4) as pool:
+            for f in as_completed([pool.submit(count, h) for h in handles]):
+                h, n = f.result()
+                hits[h] = n
+                self.app.call_from_thread(self.update, platform, token, hits=dict(hits))
+        if exact and token == self.token:
+            try:
+                posts = fetch.account(platform, exact)["posts"]
+
+                def step(done, total):
+                    hits[exact] = sum(fetch.from_place(p, self.place) for p in posts)
+                    self.app.call_from_thread(self.update, platform, token, hits=dict(hits), tags=(done, total))
+
+                fetch.read_places(posts, step, lambda: token != self.token)
+            except Exception:
+                pass
+        self.app.call_from_thread(self.update, platform, token, placing=False, tags=None)
+
+    def find(self, platform, token):
         if not sessions.current(platform):
             self.app.call_from_thread(self.update, platform, token, exact=False, off=True, checking=False,
                                       note=f"connect {platform} first: esc, then l on the home screen")
@@ -236,9 +286,25 @@ class Results(Screen):
         self.app.call_from_thread(self.update, platform, token, checking=False)
 
     def update(self, platform, token, **changes):
-        if token == self.token and platform in self.state:
+        if token == self.token and platform in self.state and self.is_attached:
             self.state[platform].update(changes)
             self.show()
+
+    def on_unmount(self):
+        self.token += 1
+
+    def near(self, platform, st, exact):
+        if st.get("real"):
+            return [x for x in st["found"] if x[0] != exact][:10]
+        pool = {h: (n, profile(platform, h)) for h, n in closest(platform, self.q, limit=20, skip={exact})}
+        for h, n, p in st["found"]:
+            if h != exact:
+                pool[h] = (n, p)
+        return sorted(((h, n, p) for h, (n, p) in pool.items()),
+                      key=lambda x: -rank(platform, score(self.q, x[0], x[1]), x[0], x[2]))[:10]
+
+    def place_note(self, n):
+        return f"{n} post{'' if n == 1 else 's'} from {self.place}" if n else None
 
     def target(self, platform, handle, prompt):
         self.targets.append((platform, handle))
@@ -258,33 +324,44 @@ class Results(Screen):
                 options.append(Option(Text(f" {platform}", style="bold " + ACCENT), disabled=True))
             prof = st["exact"]
             exact = prof["handle"] if prof else self.q
-            if prof:
-                options.append(self.target(platform, exact, match_line(exact, prof=prof, added=store.is_added(platform, exact))))
+            hits = st["hits"]
+            matched = {h for h, n in hits.items() if n}
+            narrow = bool(self.place and not st["placing"] and matched)
+            top = prof and (not narrow or exact in matched)
+            if top:
+                options.append(self.target(platform, exact, match_line(exact, prof=prof, added=store.is_added(platform, exact),
+                                                                       note=self.place_note(hits.get(exact)))))
             elif prof is None:
                 options.append(self.target(platform, exact, match_line(exact, "looking…", added=store.is_added(platform, exact))))
-            else:
+            elif not prof:
                 options.append(Option(Text(f"  {st['note']}", style=SOFT), disabled=True))
             if st.get("off"):
                 options.append(Option(Text(""), disabled=True))
                 continue
+            near = self.near(platform, st, exact)
             if st.get("real"):
-                near = [x for x in st["found"] if x[0] != exact][:10]
                 title = "  more results" if prof else "  results"
             else:
-                pool = {h: (n, profile(platform, h)) for h, n in closest(platform, self.q, limit=20, skip={exact})}
-                for h, n, p in st["found"]:
-                    if h != exact:
-                        pool[h] = (n, p)
-                near = sorted(((h, n, p) for h, (n, p) in pool.items()),
-                              key=lambda x: -rank(platform, score(self.q, x[0], x[1]), x[0], x[2]))[:10]
                 title = "  not it? closest" if prof else "  closest"
+            if narrow:
+                near = [x for x in near if x[0] in matched]
+                title = f"  {'more accounts' if top else 'accounts'} with posts from {self.place}"
             if near:
                 options.append(Option(Text(title, style=DIM), disabled=True))
                 for h, n, p in near:
-                    options.append(self.target(platform, h, match_line(h, n, prof=p, added=store.is_added(platform, h))))
+                    options.append(self.target(platform, h, match_line(h, n, prof=p, added=store.is_added(platform, h),
+                                                                       note=self.place_note(hits.get(h)))))
             if st["checking"]:
                 options.append(Option(Text("  checking close spellings…", style=SOFT), disabled=True))
-            elif not near:
+            elif self.place and st["placing"]:
+                tags = st["tags"]
+                wait = (f"  reading the place tags on @{exact}'s posts… {tags[0]} of {tags[1]}" if tags
+                        else f"  checking posts for {self.place}…")
+                options.append(Option(Text(wait, style=SOFT), disabled=True))
+            elif self.place and not matched:
+                options.append(Option(Text(f"  no posts from {self.place} in these accounts, so here's every match", style=SOFT),
+                                      disabled=True))
+            elif not near and not narrow:
                 options.append(Option(Text("  no close matches", style=SOFT), disabled=True))
             options.append(Option(Text(""), disabled=True))
         box.clear_options()
@@ -303,7 +380,7 @@ class Results(Screen):
     def on_option_list_option_selected(self, event):
         if event.option.id:
             platform, handle = self.targets[int(event.option.id[1:])]
-            self.app.push_screen(Account(platform, handle))
+            self.app.push_screen(Account(platform, handle, self.place))
 
     def action_platform(self):
         cycle = ["all"] + (sessions.connected() or PLATFORMS[1:])

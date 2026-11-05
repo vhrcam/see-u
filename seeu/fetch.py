@@ -4,6 +4,7 @@ import re
 import struct
 import threading
 import time
+import unicodedata
 import uuid
 from datetime import datetime
 from datetime import time as clock
@@ -28,6 +29,8 @@ IG_COMMENTS_DOC = "28862333703438672"
 IG_REPLIES_DOC = "29434598589503115"
 IG_PAUSE = 3
 STORY_KINDS = ("story", "highlight")
+PLACE_POSTS = 12
+PLACE_PAUSE = {"tiktok": 1, "instagram": IG_PAUSE}
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
     ("instagram", re.compile(r"instagram\.com/(?!p/|reels?/|stories/|explore/)([A-Za-z0-9_.]+)", re.I)),
@@ -875,6 +878,42 @@ def details(post):
     if any(k not in post or post[k] != v for k, v in changes.items()):
         fix(post, **changes)
     return out
+
+
+def fold(text):
+    return "".join(c for c in unicodedata.normalize("NFKD", (text or "").lower()) if not unicodedata.combining(c))
+
+
+def has_words(hay, words, whole=False):
+    hay = fold(hay)
+    words = [fold(w) for w in words]
+    tokens = set(re.findall(r"\w+", hay))
+    if all(w in tokens if whole and len(w) < 3 else w in hay for w in words):
+        return True
+    joined = "".join(words)
+    return whole and len(joined) >= 5 and joined in re.sub(r"[\W_]+", "", hay)
+
+
+def from_place(post, place):
+    return bool(place.split()) and has_words(f"{post.get('text') or ''} {post.get('place') or ''}", place.split(), whole=True)
+
+
+def read_places(posts, step, stop):
+    todo = [p for p in posts if p["platform"] in PLACE_PAUSE and p["kind"] not in STORY_KINDS][:PLACE_POSTS]
+    for i, p in enumerate(todo):
+        if stop():
+            return
+        if "place" not in p:
+            began = time.time()
+            try:
+                details(p)
+            except Unavailable:
+                return
+            except Exception:
+                pass
+            if time.time() - began > 0.3:
+                time.sleep(PLACE_PAUSE[p["platform"]])
+        step(i + 1, len(todo))
 
 
 def _place_label(name, where):

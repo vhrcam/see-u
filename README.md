@@ -27,6 +27,7 @@ Connect a platform before browsing it. You can only see what that account is all
 ## What it does
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
+- **Search by place.** Type a place after the handle, like `nasa houston`. see u checks the results' posts for that place in captions, hashtags, and highlight titles, plus the place tag on the newest 12 posts of the account you searched for, then shows only the accounts with posts from there. Opening one shows just those posts, and esc shows them all. If none match, you get the usual results.
 - **Stories.** A live TikTok or Instagram story sits at the top of the account's posts. Enter plays it in the player, and `a`/`d` move between items. Instagram highlights sit right below and work the same way.
 - **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more, and Enter on a comment shows its replies.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.
@@ -34,9 +35,9 @@ Connect a platform before browsing it. You can only see what that account is all
 - **Account screen.** Bio, exact follower counts, post counts where the platform shares them, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
 - **Saved accounts.** Press `+` on an account to save it (and `-` to unsave). Saved accounts show on the home screen with their new-post counts, and the right side shows the newest posts from whichever one is highlighted.
 - **Feed.** Every saved account in one stream, newest first. New posts sit on top, then a "you're caught up" line.
-- **Preview pane** with a cyan thumbnail, the date, views, likes, comments, the song or sound, and the full caption.
+- **Preview pane** with a cyan thumbnail, the date, views, likes, comments, the song or sound, the place tag, and the full caption.
 - **Open the real thing.** Enter opens the photo, album, video, or story in an mpv window: full color, with sound. Nothing moves on by itself. In a story, highlight, or album, `a`/`d` (or a click) go to the previous or next item. In a single video, `a`/`d` skip 3 seconds. Space pauses, and `q` or esc closes. Without mpv, see u falls back to your computer's normal photo and video apps.
-- **Filter** with `/` by caption, handle, or post type.
+- **Filter** with `/` by caption, place, handle, or post type.
 - **Save** with `v`. The post and its media go into a folder you pick, and the saved screen works offline.
 - **Open a link** in your default browser with `o`, or click a post link or bio link.
 - **Copy a link** with `c`.
@@ -72,7 +73,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 | Where | Keys |
 |---|---|
-| Home | `:` search, `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
+| Home | `:` search (a place after the handle filters by it), `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out |
 | Posts | `/` filter, `k` comments, `v` save, `o` open link, `c` copy link |
 | Comments | enter show or hide replies, `m` more comments |

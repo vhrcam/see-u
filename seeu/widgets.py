@@ -249,7 +249,7 @@ def post_text(p, extra=None):
 class FilterBar(Horizontal):
     def compose(self):
         yield Static(Text("/ ", style="bold " + ACCENT), classes="slash")
-        yield Input(placeholder="filter captions, handles, or post types", id="filter")
+        yield Input(placeholder="filter captions, places, handles, or post types", id="filter")
 
     def on_mount(self):
         self.display = False
