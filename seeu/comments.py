@@ -27,7 +27,7 @@ def comment_text(c):
     if c.get("replies"):
         meta.append(f"{exact(c['replies'])} replies")
     t.append("   " + " · ".join(m for m in meta if m) + "\n", style=DIM)
-    t.append((c.get("text") or "").strip() + "\n\n", style="bold " + TEXT)
+    t.append(((c.get("text") or "").strip() or "(no text)") + "\n\n", style="bold " + TEXT)
     return t
 
 

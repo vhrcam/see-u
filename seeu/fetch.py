@@ -173,10 +173,19 @@ def _tt_story(handle, prof):
             "items": len(media), "expires": (last or time.time()) + 86400}
 
 
+def _with_label(text, label):
+    return " ".join(x for x in ((text or "").strip(), label) if x)
+
+
+def _tt_comment(c):
+    label = "(sticker)" if c.get("cmt_sticker_struct") else "(photo)" if c.get("image_list") else None
+    return {"user": (c.get("user") or {}).get("unique_id") or "?", "text": _with_label(c.get("text"), label),
+            "time": c.get("create_time"), "likes": c.get("digg_count"), "replies": c.get("reply_comment_total")}
+
+
 def _tt_comments(post, cursor):
     d = _tt_json("comment/list/", aweme_id=post["id"], count="20", cursor=cursor or "0")
-    items = [{"user": (c.get("user") or {}).get("unique_id") or "?", "text": c.get("text") or "", "time": c.get("create_time"),
-              "likes": c.get("digg_count"), "replies": c.get("reply_comment_total")} for c in d.get("comments") or []]
+    items = [_tt_comment(c) for c in d.get("comments") or []]
     return {"items": items, "cursor": str(d["cursor"]) if d.get("has_more") and d.get("cursor") else None, "total": d.get("total")}
 
 
@@ -399,7 +408,7 @@ def instagram_search(query):
 def _ig_comment(n):
     u = n.get("user") or {}
     return {"user": u.get("username") or "?", "verified": bool(u.get("is_verified")), "time": n.get("created_at"),
-            "text": n.get("text") or ("(gif)" if n.get("giphy_media_info") else ""),
+            "text": _with_label(n.get("text"), "(gif)" if n.get("giphy_media_info") else None),
             "likes": n.get("comment_like_count"), "replies": n.get("child_comment_count")}
 
 
