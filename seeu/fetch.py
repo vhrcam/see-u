@@ -949,11 +949,12 @@ def _instagram_details(post):
 def _ig_first_comments(post):
     name = f"cache/details/instagram_{post['id']}_comments.json"
     c = store.load(name)
-    if c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and c.get("items") and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     with _locks["instagram"]:
         parts = _ig_page(f"p/{post['id']}/")
     thread = next((d["comments_media"].get("comments_connection") for d in parts if d.get("comments_media")), None)
     out = {**_ig_thread(thread), "at": time.time()}
-    store.save(name, out)
+    if out["items"]:
+        store.save(name, out)
     return out
