@@ -100,7 +100,7 @@ def first_line(text, limit=140):
 def post_line(p, new=False, who=0):
     t = Text(no_wrap=True, overflow="ellipsis")
     t.append("● " if new else "  ", style="bold " + TOP)
-    t.append(f"{short_date(p['time']) if p['time'] or p['kind'] != 'highlight' else '':<10}", style=DIM)
+    t.append(f"{short_date(p['time']) if p['time'] or p['kind'] != 'highlight' else '':<11}", style=DIM)
     if who:
         t.append(f"{TAG[p['platform']]} ", style=SOFT)
         t.append(f"@{p['handle'][:who - 2]:<{who}}", style=ACCENT)
