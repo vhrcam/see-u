@@ -20,6 +20,7 @@ PACIFIC = ZoneInfo("America/Los_Angeles")
 POSTED = re.compile(r" on ([A-Z][a-z]+ \d{1,2}, \d{4})")
 IG_POSTS_DOC = "28904005159232689"
 IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none"}
+IG_APP = "936619743392459"
 IG_SEARCH_DOC = "27706427925724183"
 IG_COMMENTS_DOC = "28862333703438672"
 IG_PAUSE = 3
@@ -411,7 +412,8 @@ def _ig_thread(conn):
 def _ig_comments(post, cursor):
     d = _instagram_details(post)
     if not cursor:
-        return {**d["thread"], "total": d.get("comments")}
+        first = _ig_first_comments(post)
+        return {"items": first["items"], "cursor": first["cursor"], "total": d.get("comments")}
     variables = {"after": cursor, "first": 20, "is_mobile_web": False, "media_id": d["pk"], "sort_order": "popular",
                  "__relay_internal__pv__PolarisIsMobileWebrelayprovider": False,
                  "__relay_internal__pv__PolarisIsLoggedInrelayprovider": True,
@@ -799,7 +801,7 @@ def details(post):
 def _tiktok_details(post):
     name = f"cache/details/tiktok_{post['id']}.json"
     c = store.load(name)
-    if c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and "song" in c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     try:
         with ydl() as y:
@@ -812,8 +814,10 @@ def _tiktok_details(post):
     if not item:
         return {}
     s = item.get("statsV2") or item.get("stats") or {}
+    music = item.get("music") or {}
     out = {"time": _num(item.get("createTime")), "views": _num(s.get("playCount")), "likes": _num(s.get("diggCount")),
-           "comments": _num(s.get("commentCount")), "at": time.time()}
+           "comments": _num(s.get("commentCount")), "at": time.time(),
+           "song": " · ".join(x for x in (music.get("title"), music.get("authorName")) if x) or None}
     urls = [((i.get("imageURL") or {}).get("urlList") or [None])[0] for i in (item.get("imagePost") or {}).get("images") or []]
     if any(urls):
         out["kind"] = "photos"
@@ -858,21 +862,63 @@ def _ig_highlight(post):
     return out
 
 
+def _ig_song(item):
+    meta = [item.get("music_metadata") or {}, item.get("clips_metadata") or {}]
+    music = next((m["music_info"] for m in meta if m.get("music_info")), {})
+    asset = music.get("music_asset_info") or {}
+    if asset.get("title"):
+        return " · ".join(x for x in (asset["title"], asset.get("display_artist")) if x)
+    sound = next((m["original_sound_info"] for m in meta if m.get("original_sound_info")), None)
+    if sound:
+        return " · ".join(x for x in (sound.get("original_audio_title") or "Original audio",
+                                      (sound.get("ig_artist") or {}).get("username")) if x)
+    return None
+
+
+def _ig_item(post):
+    jar = sessions.jar("instagram")
+    pk = instaloader.Post.shortcode_to_mediaid(post["id"])
+    try:
+        r = requests.get(f"https://www.instagram.com/api/v1/media/{pk}/info/", cookies=jar, timeout=20, allow_redirects=False,
+                         headers={"User-Agent": _agent("instagram"), "X-IG-App-ID": IG_APP, "X-CSRFToken": jar.get("csrftoken", ""),
+                                  "X-Requested-With": "XMLHttpRequest", "Referer": f"https://www.instagram.com/p/{post['id']}/"})
+        if r.status_code == 429:
+            raise Unavailable("instagram is rate-limiting right now, try again in a few minutes")
+        items = r.json().get("items") if r.status_code == 200 else None
+    except (requests.RequestException, ValueError):
+        items = None
+    if items:
+        return items[0]
+    parts = _ig_page(f"p/{post['id']}/")
+    info = next((d["xdt_api__v1__media__shortcode__web_info"] for d in parts
+                 if d.get("xdt_api__v1__media__shortcode__web_info")), {})
+    if not info.get("items"):
+        raise Unavailable("instagram wouldn't load that post right now")
+    return info["items"][0]
+
+
 def _instagram_details(post):
     name = f"cache/details/instagram_{post['id']}.json"
     c = store.load(name)
-    if c and "thread" in c and time.time() - c.get("at", 0) < 6 * 3600:
+    if c and "song" in c and time.time() - c.get("at", 0) < 6 * 3600:
+        return c
+    with _locks["instagram"]:
+        n = _ig_item(post)
+    out = {"likes": n.get("like_count"), "comments": n.get("comment_count"),
+           "views": n.get("play_count") or n.get("ig_play_count") or n.get("view_count"), "media": _ig_media(n),
+           "time": n.get("taken_at"), "pk": str(n.get("pk")), "song": _ig_song(n), "at": time.time()}
+    store.save(name, out)
+    return out
+
+
+def _ig_first_comments(post):
+    name = f"cache/details/instagram_{post['id']}_comments.json"
+    c = store.load(name)
+    if c and time.time() - c.get("at", 0) < 6 * 3600:
         return c
     with _locks["instagram"]:
         parts = _ig_page(f"p/{post['id']}/")
-    info = next((d["xdt_api__v1__media__shortcode__web_info"] for d in parts
-                 if d.get("xdt_api__v1__media__shortcode__web_info")), {})
-    items = info.get("items") or []
-    if not items:
-        raise Unavailable("instagram wouldn't load that post right now")
-    n = items[0]
     thread = next((d["comments_media"].get("comments_connection") for d in parts if d.get("comments_media")), None)
-    out = {"likes": n.get("like_count"), "comments": n.get("comment_count"), "views": n.get("play_count") or n.get("view_count"),
-           "media": _ig_media(n), "time": n.get("taken_at"), "pk": str(n.get("pk")), "thread": _ig_thread(thread), "at": time.time()}
+    out = {**_ig_thread(thread), "at": time.time()}
     store.save(name, out)
     return out
