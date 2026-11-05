@@ -2,6 +2,8 @@
 
 A terminal app for browsing TikTok, Instagram, and Snapchat with your own accounts, without the apps or their feeds. Cyan on black, with an eye at the top.
 
+![see u's home screen with saved accounts on the left and the highlighted account's newest posts on the right](docs/home.png)
+
 ## Sign in
 
 Press `l` for the logins menu, or `ctrl+l` while the search box is active. Pick a platform and a browser window opens on that platform's real sign-in page. Sign in the way you normally would, including 2FA, and the window closes by itself within about 30 seconds of you getting in. Nothing is attached to the browser while you sign in. see u reads the session afterward.
