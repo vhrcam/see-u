@@ -1,8 +1,10 @@
 import http.cookiejar
 import json
 import re
+import struct
 import threading
 import time
+import uuid
 from datetime import datetime
 from datetime import time as clock
 from urllib.parse import urlparse
@@ -12,7 +14,7 @@ import instaloader
 import requests
 import yt_dlp
 
-from . import sessions, store
+from . import pb, sessions, store
 
 TTL = 600
 IG_EPOCH = 1314220021721
@@ -438,7 +440,7 @@ def _ig_comments(post, cursor):
 def comments(post, cursor=None):
     need(post["platform"])
     if post["platform"] == "snapchat":
-        return _snap_comments(post)
+        return _snap_comments(post, cursor)
     return _tt_comments(post, cursor) if post["platform"] == "tiktok" else _ig_comments(post, cursor)
 
 
@@ -558,7 +560,41 @@ def _snap_first(snaps):
     return min((_num(_v(s.get("timestampInSec"))) or 0 for s in snaps), default=0) or None
 
 
-def _snap_page(handle):
+def _snap_comment(row):
+    text = row.get(4, [b""])[0].decode("utf-8", "replace")
+    name = row.get(12, [b""])[0].decode("utf-8", "replace")
+    return {"id": row.get(1, [None])[0], "name": name or "someone", "text": text,
+            "time": row.get(11, [0])[0] // 1000 or None, "replies": row.get(22, [0])[0],
+            "likes": sum(pb.decode(r).get(2, [0])[0] for r in row.get(5, []))}
+
+
+def _snap_thread(post, parent=None, cursor=None):
+    m = re.search(r"spotlight/([\w-]+)", post["url"])
+    if not m:
+        raise Unavailable("snapchat didn't share comments for this one")
+    # field numbers from snapchat's public web player. 3 = its web client, 5 = approved, 9 = its usual read mode
+    meta = pb.blob(1, str(uuid.uuid4())) + pb.num(2, int(time.time() * 1000)) + pb.num(3, 20)
+    body = pb.blob(1, meta) + pb.blob(2, m.group(1)) + pb.num(5, 3) + pb.num(9, 2)
+    if cursor:
+        body += pb.blob(7, cursor)
+    if parent:
+        body += pb.blob(8, parent)
+    try:
+        r = requests.post("https://www.snapchat.com/getreplies", data=body, timeout=20,
+                          headers={**UA, "User-Agent": _agent("snapchat"), "Origin": "https://www.snapchat.com"})
+        if r.status_code != 200:
+            raise Unavailable("snapchat wouldn't send those right now, try again in a bit")
+        top = pb.decode(r.content)
+    except (requests.RequestException, ValueError, IndexError, struct.error):
+        raise Unavailable("snapchat wouldn't send those right now, try again in a bit")
+    return {"items": [_snap_comment(pb.decode(x)) for x in top.get(2, [])], "cursor": top.get(4, [None])[0]}
+
+
+def _snap_comments(post, cursor):
+    return {**_snap_thread(post, cursor=cursor), "total": post.get("comments")}
+
+
+def _snapchat(handle):
     try:
         r = requests.get(f"https://www.snapchat.com/add/{handle}", timeout=20,
                          headers={**UA, "User-Agent": _agent("snapchat")}, cookies=sessions.jar("snapchat"))
@@ -569,30 +605,7 @@ def _snap_page(handle):
     m = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', r.text, re.S)
     if r.status_code != 200 or not m:
         raise Unavailable("snapchat wouldn't load that right now, try again in a bit")
-    return json.loads(m.group(1)).get("props", {}).get("pageProps", {})
-
-
-def _snap_comment(c):
-    return {"name": c.get("replyPosterDisplayName") or "someone", "text": c.get("replyText") or "",
-            "time": (_num(c.get("replyTimestampMs")) or 0) // 1000 or None,
-            "likes": sum(_num(r.get("reactCount")) or 0 for r in c.get("reactCounts") or []),
-            "replies": _num(c.get("threadedReplyCount"))}
-
-
-def _snap_comments(post):
-    m = re.search(r"spotlight/([\w-]+)", post["url"])
-    if not m:
-        raise Unavailable("snapchat didn't share comments for this one")
-    page = _snap_page(post["handle"])
-    groups = json.loads(page.get("encodedSpotlightComments") or "[]")
-    rows = next((g for g in groups if g and g[0].get("snapId") == m.group(1)), [])
-    spot = next((s for s in page.get("spotlightStoryMetadata") or [] if m.group(1) in (s.get("deeplink") or "")), {})
-    return {"items": [_snap_comment(c) for c in rows], "cursor": None,
-            "total": _num((spot.get("engagementStats") or {}).get("commentCount"))}
-
-
-def _snapchat(handle):
-    page = _snap_page(handle)
+    page = json.loads(m.group(1)).get("props", {}).get("pageProps", {})
     up = page.get("userProfile") or {}
     info = up.get(up.get("$case") or "") or {}
     if not info.get("username"):
