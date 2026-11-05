@@ -108,7 +108,7 @@ def account_line(a, new=0):
     c = fetch.cached(a["platform"], a["handle"]) or {}
     name = (c.get("profile") or {}).get("name") or a.get("name") or a["handle"]
     t = Text(no_wrap=True, overflow="ellipsis")
-    t.append(f"  {set_cell_size(name, 16)}  ", style=TOP)
+    t.append(f"  {set_cell_size(name, 16)}  ", style="bold " + TOP)
     t.append(f"@{a['handle'][:16]:<18}", style=ACCENT)
     t.append(f"{TAG[a['platform']]:<4}", style=DIM)
     if new:

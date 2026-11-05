@@ -120,7 +120,7 @@ class Logins(Screen):
         t = Text(no_wrap=True, overflow="ellipsis")
         t.append("  ")
         t.append_text(light(self.pulse if busy else on))
-        t.append(f"  @{l['user'][:24]:<26}", style=TOP if on else DIM)
+        t.append(f"  @{l['user'][:24]:<26}", style="bold " + TOP if on else DIM)
         t.append(f"{l['platform']:<12}", style=ACCENT if on else DIM)
         if busy:
             t.append("waiting for you to sign in…", style=ACCENT)
@@ -146,7 +146,7 @@ class Logins(Screen):
             t.append_text(light(self.pulse))
         else:
             t.append("+", style=ACCENT)
-        t.append(f"  {platform}", style=TOP)
+        t.append(f"  {platform}", style="bold " + TOP)
         if busy:
             t.append("   waiting for you to sign in…", style=ACCENT)
         return t

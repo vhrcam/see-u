@@ -107,7 +107,7 @@ def post_line(p, new=False, who=0):
     t.append(f"{KIND.get(p['kind'], p['kind']):<10}", style=SOFT)
     if p.get("pinned"):
         t.append("pinned ", style=DIM)
-    t.append(first_line(p["text"]) or "(no caption)", style=TOP if new else TEXT)
+    t.append(first_line(p["text"]) or "(no caption)", style="bold " + (TOP if new else TEXT))
     return t
 
 
@@ -234,7 +234,7 @@ def post_text(p, extra=None):
     if p.get("saved_dir"):
         t.append(f"saved in {p['folder']}\n", style=SOFT)
     t.append("\n")
-    t.append((p["text"] or "(no caption)").strip() + "\n", style=TOP)
+    t.append((p["text"] or "(no caption)").strip() + "\n", style="bold " + TEXT)
     t.append("\n")
     t.append(p["url"].replace("https://www.", ""), style=link(p["url"], DIM))
     return t
