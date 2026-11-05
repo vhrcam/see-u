@@ -150,10 +150,8 @@ FolderPick {
 #commentbody {
     height: 1fr;
     margin: 1 2 0 2;
-}
-
-#commentlist {
-    height: auto;
+    text-wrap: wrap;
+    text-overflow: fold;
 }
 
 #searching {

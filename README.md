@@ -26,7 +26,7 @@ Connect a platform before browsing it. You can only see what that account is all
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
 - **Stories.** A live TikTok or Instagram story sits at the top of the account's posts. Enter plays it in the player, and `a`/`d` move between items. Instagram highlights sit right below and work the same way.
-- **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more.
+- **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more, and Enter on a comment shows its replies.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.
 - **Closest matches.** TikTok and Snapchat get their own list: the exact handle if it exists, then up to 10 of the closest real accounts.
 - **Account screen.** Bio, exact follower counts, post counts where the platform shares them, bio links, and the latest posts. `m` loads every older post, all the way back, and shows its progress. Press `m` again to pause.
@@ -78,6 +78,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 | Home | `:` search, `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out |
 | Posts | `/` filter, `k` comments, `v` save, `o` open link, `c` copy link |
+| Comments | enter show or hide replies, `m` more comments |
 | Account | `+` save account, `-` unsave, `m` load every older post (again to pause), `r` refresh |
 | Saved | `x` delete |
 | Player | `a`/`d` previous/next item (or skip 3 seconds in a single video), click for next, space pause, `q` close |

@@ -25,6 +25,7 @@ IG_PAGE = {"Accept": "text/html", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode"
 IG_APP = "936619743392459"
 IG_SEARCH_DOC = "27706427925724183"
 IG_COMMENTS_DOC = "28862333703438672"
+IG_REPLIES_DOC = "29434598589503115"
 IG_PAUSE = 3
 STORY_KINDS = ("story", "highlight")
 LINKS = [
@@ -181,14 +182,21 @@ def _with_label(text, label):
 
 def _tt_comment(c):
     label = "(sticker)" if c.get("cmt_sticker_struct") else "(photo)" if c.get("image_list") else None
-    return {"user": (c.get("user") or {}).get("unique_id") or "?", "text": _with_label(c.get("text"), label),
+    return {"id": c.get("cid"), "user": (c.get("user") or {}).get("unique_id") or "?", "text": _with_label(c.get("text"), label),
             "time": c.get("create_time"), "likes": c.get("digg_count"), "replies": c.get("reply_comment_total")}
 
 
+def _tt_page(d):
+    return {"items": [_tt_comment(c) for c in d.get("comments") or []],
+            "cursor": str(d["cursor"]) if d.get("has_more") and d.get("cursor") else None, "total": d.get("total")}
+
+
 def _tt_comments(post, cursor):
-    d = _tt_json("comment/list/", aweme_id=post["id"], count="20", cursor=cursor or "0")
-    items = [_tt_comment(c) for c in d.get("comments") or []]
-    return {"items": items, "cursor": str(d["cursor"]) if d.get("has_more") and d.get("cursor") else None, "total": d.get("total")}
+    return _tt_page(_tt_json("comment/list/", aweme_id=post["id"], count="20", cursor=cursor or "0"))
+
+
+def _tt_replies(post, comment, cursor):
+    return _tt_page(_tt_json("comment/list/reply/", comment_id=comment["id"], item_id=post["id"], count="20", cursor=cursor or "0"))
 
 
 def _tiktok_page(y, handle):
@@ -409,7 +417,7 @@ def instagram_search(query):
 
 def _ig_comment(n):
     u = n.get("user") or {}
-    return {"user": u.get("username") or "?", "verified": bool(u.get("is_verified")), "time": n.get("created_at"),
+    return {"id": n.get("pk"), "user": u.get("username") or "?", "verified": bool(u.get("is_verified")), "time": n.get("created_at"),
             "text": _with_label(n.get("text"), "(gif)" if n.get("giphy_media_info") else None),
             "likes": n.get("comment_like_count"), "replies": n.get("child_comment_count")}
 
@@ -442,6 +450,27 @@ def comments(post, cursor=None):
     if post["platform"] == "snapchat":
         return _snap_comments(post, cursor)
     return _tt_comments(post, cursor) if post["platform"] == "tiktok" else _ig_comments(post, cursor)
+
+
+def _ig_replies(comment, cursor):
+    variables = {"parent_comment_id": comment["id"], "first": 20, "after": cursor, "before": None, "last": None,
+                 "__relay_internal__pv__PolarisIsLoggedInrelayprovider": True,
+                 "__relay_internal__pv__PolarisThreadsStyleCommentsEnabledrelayprovider": False}
+    with _locks["instagram"]:
+        r = _ig_errors(lambda: _loader.context.doc_id_graphql_query(IG_REPLIES_DOC, variables, web_api=True))
+    conn = ((r.get("data") or {}).get("fetch__XIGComment") or {}).get("child_comments_connection")
+    if conn is None:
+        raise Unavailable("instagram wouldn't send the replies right now")
+    return _ig_thread(conn)
+
+
+def replies(post, comment, cursor=None):
+    need(post["platform"])
+    if post["platform"] == "snapchat":
+        return _snap_thread(post, comment["id"], cursor)
+    if post["platform"] == "tiktok":
+        return _tt_replies(post, comment, cursor)
+    return _ig_replies(comment, cursor)
 
 
 def _ig_thumb(item):
@@ -960,7 +989,7 @@ def _instagram_details(post):
 
 
 def _ig_first_comments(post):
-    name = f"cache/details/instagram_{post['id']}_comments.json"
+    name = f"cache/details/instagram_{post['id']}_thread.json"
     c = store.load(name)
     if c and c.get("items") and time.time() - c.get("at", 0) < 6 * 3600:
         return c
