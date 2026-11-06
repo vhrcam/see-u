@@ -27,7 +27,10 @@ Connect a platform before browsing it. You can only see what that account is all
 ## What it does
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
-- **Search by place.** Type a place after the handle, like `nasa houston`. see u checks the results' posts for that place in captions, hashtags, highlight titles, and the place tag at the top of the post, then shows only the accounts with posts from there. TikTok sends place tags with every account's posts. Instagram only sends them one post at a time, so there see u reads the tags on the newest 12 posts of the account you searched for. Opening a result shows just those posts, and esc shows them all. If none match, you get the usual results.
+- **Search by place.** Press `p` (`ctrl+p` while typing, or click the 📍 box at the bottom), type a city, state, or country, and press enter. see u confirms it against a built-in list of places and fixes small typos, so `dalas` becomes Dallas, Texas, United States. Anything that isn't on the list, like a landmark, is used as typed. The place stays set for your searches until you clear the box.
+  - Results then only show accounts with posts from there. For the first 10 accounts, see u checks captions, hashtags, highlight titles, and the place tag at the top of the post.
+  - TikTok sends place tags with every account's posts. Instagram only sends them one post at a time, so see u reads the newest 12 posts of the account you searched for and the newest 3 of the others, spaced out, and stops if Instagram slows down.
+  - Opening a result shows just those posts, and esc shows them all. If none match, you get the usual results.
 - **Stories.** A live TikTok or Instagram story sits at the top of the account's posts. Enter plays it in the player, and `a`/`d` move between items. Instagram highlights sit right below and work the same way.
 - **Comments.** `k` on a post or Snapchat Spotlight opens its comments, with likes and reply counts. `m` loads more, and Enter on a comment shows its replies.
 - **Instagram search.** Instagram's section uses its own account search, the same one as its search box.
@@ -73,7 +76,7 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 | Where | Keys |
 |---|---|
-| Home | `:` search (a place after the handle filters by it), `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
+| Home | `:` search, `p` place (`ctrl+p` while typing), `/removeme` remove your accounts, `/wipe` delete everything, `tab` platform, `l` logins (`ctrl+l` while typing), `f` feed, `v` saved posts, `r` refresh, `x` unsave, `q` quit (`ctrl+q` while typing) |
 | Logins | enter connect, reconnect, or switch; `x` sign out |
 | Posts | `/` filter, `k` comments, `v` save, `o` open link, `c` copy link |
 | Comments | enter show or hide replies, `m` more comments |
@@ -85,4 +88,4 @@ Enter opens, esc goes back, and `w`/`s` work like the up and down arrows. With t
 
 These sites change often. If something stops loading, run `seeu update` to update the two fetchers (yt-dlp and instaloader).
 
-Built with Python, Textual, yt-dlp, instaloader, and Pillow.
+Built with Python, Textual, yt-dlp, instaloader, and Pillow. The list of places comes from [GeoNames](https://www.geonames.org) (CC BY 4.0).

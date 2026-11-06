@@ -18,7 +18,7 @@ from .eye import blink, eye, glance, shimmer
 from .feed import Feed
 from .logins import Logins, lights
 from .saved import Saved
-from .search import PLATFORMS, Results
+from .search import PLATFORMS, Results, find_place
 from .widgets import ACCENT, DIM, KIND, SOFT, TAG, TEXT, TOP, Nav, short_ago, short_date, web_url
 
 THEME = Theme(
@@ -123,6 +123,8 @@ class Home(Screen):
         Binding("colon", "search", "search", show=False),
         Binding("slash", "command", "command", show=False),
         Binding("tab", "platform", "platform", priority=True),
+        Binding("p", "place", "place"),
+        Binding("ctrl+p", "place_typing", "place", key_display="ctrl+p"),
         Binding("f", "feed", "feed"),
         Binding("v", "saved", "saved posts"),
         Binding("l", "logins", "logins"),
@@ -138,6 +140,7 @@ class Home(Screen):
         super().__init__()
         self.platform = PLATFORMS[0]
         self.rows = []
+        self.place = None
 
     def compose(self):
         with Horizontal(id="banner"):
@@ -153,7 +156,10 @@ class Home(Screen):
                 yield Static(id="newest")
         with Horizontal(id="searchbar"):
             yield Static(id="where")
-            yield Input(placeholder="handle/profile link, then a place if you want", id="search", select_on_focus=False)
+            yield Input(placeholder="handle/profile link", id="search", select_on_focus=False)
+            yield Static(Text("📍", style=ACCENT), id="pin")
+            yield Input(placeholder="city", id="place")
+            yield Static(id="placed")
         yield Footer()
 
     def on_mount(self):
@@ -225,8 +231,10 @@ class Home(Screen):
         typing = isinstance(self.focused, Input)
         if action == "remove":
             return bool(self.rows) and not typing and self.query_one("#accounts", OptionList).highlighted is not None
-        if action in ("quit_list", "feed", "saved", "refresh", "logins"):
+        if action in ("quit_list", "feed", "saved", "refresh", "logins", "place"):
             return not typing
+        if action == "place_typing":
+            return typing and getattr(self.focused, "id", None) != "place"
         if action in ("quit_typing", "leave_search", "logins_typing"):
             return typing
         return True
@@ -315,8 +323,48 @@ class Home(Screen):
         self.app.exit(message=message)
 
     def action_leave_search(self):
-        self.query_one("#search", Input).value = ""
+        place = self.query_one("#place", Input)
+        if self.focused is place:
+            place.value = self.shown_place()
+        else:
+            self.query_one("#search", Input).value = ""
         self.stop_typing()
+
+    def action_place(self):
+        self.query_one("#place", Input).focus()
+
+    def action_place_typing(self):
+        self.action_place()
+
+    def shown_place(self):
+        return self.place["shown"] if self.place else ""
+
+    def confirm_place(self, text):
+        self.place = find_place(text) if text.strip() else None
+        if self.place:
+            self.place["shown"] = self.place["label"] or " ".join(text.split())
+        self.query_one("#place", Input).value = self.shown_place()
+        self.show_place()
+
+    def show_place(self):
+        box = self.query_one("#place", Input)
+        t = Text()
+        if self.place and box.value == self.place["shown"]:
+            t.append("✓", style="bold " + TOP)
+            if not self.place["label"]:
+                t.append(" as typed", style=SOFT)
+        elif box.value.strip():
+            t.append("enter to confirm", style=SOFT)
+        self.query_one("#placed", Static).update(t)
+
+    def on_input_changed(self, event):
+        if event.input.id == "place":
+            self.show_place()
+
+    def on_descendant_blur(self, event):
+        box = self.query_one("#place", Input)
+        if event.widget is box and box.value != self.shown_place():
+            self.confirm_place(box.value)
 
     def stop_typing(self):
         if self.rows:
@@ -326,11 +374,15 @@ class Home(Screen):
         self.refresh_bindings()
 
     def on_click(self, event):
-        search = self.query_one("#search", Input)
-        if self.focused is search and event.widget is not search:
+        if isinstance(self.focused, Input) and event.widget is not self.focused:
             self.stop_typing()
 
     def on_input_submitted(self, event):
+        if event.input.id == "place":
+            if event.value != self.shown_place():
+                self.confirm_place(event.value)
+            self.query_one("#search", Input).focus()
+            return
         text = event.value.strip().lower()
         if text in store.COMMANDS:
             self.run_command(text)
@@ -348,9 +400,8 @@ class Home(Screen):
         if platform and platform != self.platform:
             self.platform = platform
             self.show_platform()
-        place = " ".join(event.value.strip().lstrip("@:").split()[1:])
         event.input.value = ""
-        self.app.push_screen(Results(self.platform, handle, place))
+        self.app.push_screen(Results(self.platform, handle, self.place["words"] if self.place else "", self.shown_place()))
 
 
 class SeeU(App):

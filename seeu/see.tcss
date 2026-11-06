@@ -60,6 +60,24 @@ Screen {
     padding-right: 1;
 }
 
+#search {
+    width: 1fr;
+}
+
+#pin {
+    width: auto;
+    padding: 0 1 0 2;
+}
+
+#place {
+    width: 30;
+}
+
+#placed {
+    width: auto;
+    padding-left: 1;
+}
+
 FilterBar {
     height: 1;
     margin: 1 2 0 2;

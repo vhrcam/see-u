@@ -19,7 +19,9 @@ PLATFORMS = ["all", "tiktok", "instagram", "snapchat"]
 POPULAR = json.loads(Path(__file__).with_name("popular.json").read_text())
 VALID = re.compile(r"[a-z0-9_.-]{2,30}")
 CHECKS = {"tiktok": 16, "instagram": 4, "snapchat": 6}
+PLACES = Path(__file__).with_name("places.tsv")
 _probed = {}
+_places = []
 
 
 def distance(a, b):
@@ -36,6 +38,30 @@ def distance(a, b):
             if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
                 d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
     return d[-1][-1]
+
+
+def places():
+    if not _places:
+        for line in PLACES.read_text(encoding="utf-8").splitlines():
+            name, state, country = line.split("\t")
+            _places.append((fetch.fold(name), ", ".join(x for x in (name, state, country) if x)))
+    return _places
+
+
+def find_place(text):
+    q = " ".join(fetch.fold(text).split())
+    rows = places()
+    hit = next((r for r in rows if r[0] == q), None)
+    if not hit and len(q) >= 4:
+        hit = next((r for r in rows if r[0].startswith(q + " ")), None)
+    if hit:
+        return {"words": q, "label": hit[1]}
+    if len(q) >= 5:
+        near = [(distance(q, r[0]), i) for i, r in enumerate(rows) if r[0][:1] == q[:1] and abs(len(r[0]) - len(q)) <= 2]
+        if near and min(near)[0] <= max(1, len(q) // 4):
+            word, label = rows[min(near)[1]]
+            return {"words": word, "label": label}
+    return {"words": q, "label": None}
 
 
 def score(q, handle, name=None):
@@ -136,11 +162,12 @@ class Results(Screen):
         Binding("tab", "platform", "platform", priority=True),
     ]
 
-    def __init__(self, platform, query, place=""):
+    def __init__(self, platform, query, place="", label=""):
         super().__init__()
         self.platform = platform
         self.q = query.lower()
         self.place = " ".join(place.lower().split())
+        self.label = label or self.place
         self.token = 0
         self.state = {}
         self.targets = []
@@ -160,7 +187,7 @@ class Results(Screen):
         head.append(f"@{self.q}", style="bold " + TOP)
         if self.place:
             head.append("  ·  posts from ", style=DIM)
-            head.append(self.place, style="bold " + TOP)
+            head.append(self.label, style="bold " + TOP)
         self.query_one("#searching", Static).update(head)
         platforms = (sessions.connected() or PLATFORMS[1:]) if self.platform == "all" else [self.platform]
         self.state = {p: {"exact": None, "note": None, "found": [], "checking": True, "hits": {},
