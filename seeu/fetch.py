@@ -30,6 +30,8 @@ IG_REPLIES_DOC = "29434598589503115"
 IG_PAUSE = 3
 STORY_KINDS = ("story", "highlight")
 PLACE_POSTS = 12
+PLACE_MORE = 3
+PLACE_ACCOUNTS = 10
 PLACE_PAUSE = {"tiktok": 1, "instagram": IG_PAUSE}
 LINKS = [
     ("tiktok", re.compile(r"tiktok\.com/@([A-Za-z0-9_.]+)", re.I)),
@@ -920,22 +922,23 @@ def from_place(post, place):
     return bool(place.split()) and has_words(f"{post.get('text') or ''} {post.get('place') or ''}", place.split(), whole=True)
 
 
-def read_places(posts, step, stop):
-    todo = [p for p in posts if p["platform"] in PLACE_PAUSE and p["kind"] not in STORY_KINDS][:PLACE_POSTS]
+def read_places(posts, step, stop, limit=PLACE_POSTS, skip=lambda p: False):
+    todo = [p for p in posts if p["platform"] in PLACE_PAUSE and p["kind"] not in STORY_KINDS][:limit]
     for i, p in enumerate(todo):
         if stop():
-            return
-        if "place" not in p:
+            return True
+        if "place" not in p and not skip(p):
             began = time.time()
             try:
                 details(p)
             except Unavailable:
-                return
+                return False
             except Exception:
                 pass
             if time.time() - began > 0.3:
                 time.sleep(PLACE_PAUSE[p["platform"]])
         step(i + 1, len(todo))
+    return True
 
 
 def _place_label(name, where):

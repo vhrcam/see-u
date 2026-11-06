@@ -164,7 +164,7 @@ class Results(Screen):
         self.query_one("#searching", Static).update(head)
         platforms = (sessions.connected() or PLATFORMS[1:]) if self.platform == "all" else [self.platform]
         self.state = {p: {"exact": None, "note": None, "found": [], "checking": True, "hits": {},
-                          "placing": bool(self.place), "tags": None} for p in platforms}
+                          "placing": bool(self.place), "counted": False, "slowed": False, "tags": None} for p in platforms}
         self.show()
         for p in platforms:
             self.run_worker(lambda p=p, t=self.token: self.search(p, t), thread=True, group=f"search-{p}", exclusive=True)
@@ -194,36 +194,46 @@ class Results(Screen):
             return
         exact = st["exact"]["handle"] if st["exact"] else None
         handles = ([exact] if exact else []) + [h for h, _, _ in self.near(platform, st, exact or self.q)]
-        hits = {}
+        hits, lists = {}, {}
 
         def count(h):
             if token != self.token:
                 return h, None
             try:
-                posts = fetch.account(platform, h)["posts"]
+                lists[h] = fetch.account(platform, h)["posts"]
             except Exception:
                 return h, None
             if platform == "instagram":
                 time.sleep(1)
-            return h, sum(fetch.from_place(p, self.place) for p in posts)
+            return h, self.place_count(lists[h])
 
         with ThreadPoolExecutor(1 if platform == "instagram" else 4) as pool:
             for f in as_completed([pool.submit(count, h) for h in handles]):
                 h, n = f.result()
                 hits[h] = n
                 self.app.call_from_thread(self.update, platform, token, hits=dict(hits))
-        if exact and token == self.token:
+        self.app.call_from_thread(self.update, platform, token, counted=True)
+        for h in [h for h in handles if h in lists][:fetch.PLACE_ACCOUNTS]:
+            posts = lists[h]
+
+            def step(done, total, h=h, posts=posts):
+                hits[h] = self.place_count(posts)
+                self.app.call_from_thread(self.update, platform, token, hits=dict(hits), tags=(h, done, total))
+
+            limit = fetch.PLACE_POSTS if h == exact else fetch.PLACE_MORE
             try:
-                posts = fetch.account(platform, exact)["posts"]
-
-                def step(done, total):
-                    hits[exact] = sum(fetch.from_place(p, self.place) for p in posts)
-                    self.app.call_from_thread(self.update, platform, token, hits=dict(hits), tags=(done, total))
-
-                fetch.read_places(posts, step, lambda: token != self.token)
+                ok = fetch.read_places(posts, step, lambda: token != self.token, limit, lambda p: fetch.from_place(p, self.place))
             except Exception:
-                pass
+                ok = True
+            if token != self.token:
+                return
+            if not ok:
+                self.app.call_from_thread(self.update, platform, token, slowed=True)
+                break
         self.app.call_from_thread(self.update, platform, token, placing=False, tags=None)
+
+    def place_count(self, posts):
+        return sum(fetch.from_place(p, self.place) for p in posts)
 
     def find(self, platform, token):
         if not sessions.current(platform):
@@ -326,7 +336,7 @@ class Results(Screen):
             exact = prof["handle"] if prof else self.q
             hits = st["hits"]
             matched = {h for h, n in hits.items() if n}
-            narrow = bool(self.place and not st["placing"] and matched)
+            narrow = bool(self.place and st["counted"] and matched)
             top = prof and (not narrow or exact in matched)
             if top:
                 options.append(self.target(platform, exact, match_line(exact, prof=prof, added=store.is_added(platform, exact),
@@ -355,7 +365,7 @@ class Results(Screen):
                 options.append(Option(Text("  checking close spellings…", style=SOFT), disabled=True))
             elif self.place and st["placing"]:
                 tags = st["tags"]
-                wait = (f"  reading the place tags on @{exact}'s posts… {tags[0]} of {tags[1]}" if tags
+                wait = (f"  reading place tags on @{tags[0]}'s posts… {tags[1]} of {tags[2]}" if tags
                         else f"  checking posts for {self.place}…")
                 options.append(Option(Text(wait, style=SOFT), disabled=True))
             elif self.place and not matched:
@@ -363,6 +373,9 @@ class Results(Screen):
                                       disabled=True))
             elif not near and not narrow:
                 options.append(Option(Text("  no close matches", style=SOFT), disabled=True))
+            if self.place and st["slowed"]:
+                options.append(Option(Text(f"  {platform} slowed down, so the rest were only checked by caption", style=SOFT),
+                                      disabled=True))
             options.append(Option(Text(""), disabled=True))
         box.clear_options()
         box.add_options(options)
