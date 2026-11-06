@@ -64,13 +64,9 @@ Screen {
     width: 1fr;
 }
 
-#pin {
-    width: auto;
-    padding: 0 1 0 2;
-}
-
 #place {
     width: 30;
+    margin-left: 3;
 }
 
 #placed {

@@ -27,7 +27,7 @@ Connect a platform before browsing it. You can only see what that account is all
 ## What it does
 
 - **Look up accounts.** Press `:`, type a handle, and press enter. It searches your connected platforms together, and Tab switches between all and each one. Pasting a profile link picks the platform for you.
-- **Search by place.** Press `p` (`ctrl+p` while typing, or click the 📍 box at the bottom), type a city, state, or country, and press enter. see u confirms it against a built-in list of places and fixes small typos, so `dalas` becomes Dallas, Texas, United States. Anything that isn't on the list, like a landmark, is used as typed. The place stays set for your searches until you clear the box.
+- **Search by place.** Press `p` (`ctrl+p` while typing, or click the city box at the bottom), type a city, state, or country, and press enter. see u confirms it against a built-in list of places and fixes small typos, so `dalas` becomes Dallas, Texas, United States. Anything that isn't on the list, like a landmark, is used as typed. The place stays set for your searches until you clear the box.
   - Results then only show accounts with posts from there. For the first 10 accounts, see u checks captions, hashtags, highlight titles, and the place tag at the top of the post.
   - TikTok sends place tags with every account's posts. Instagram only sends them one post at a time, so see u reads the newest 12 posts of the account you searched for and the newest 3 of the others, spaced out, and stops if Instagram slows down.
   - Opening a result shows just those posts, and esc shows them all. If none match, you get the usual results.

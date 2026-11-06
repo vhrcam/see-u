@@ -157,7 +157,6 @@ class Home(Screen):
         with Horizontal(id="searchbar"):
             yield Static(id="where")
             yield Input(placeholder="handle/profile link", id="search", select_on_focus=False)
-            yield Static(Text("📍", style=ACCENT), id="pin")
             yield Input(placeholder="city", id="place")
             yield Static(id="placed")
         yield Footer()
